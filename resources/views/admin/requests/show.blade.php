@@ -23,13 +23,9 @@
                 <div class="d-flex align-items-center">
                     <h4 class="card-title">Customer Information</h4>
                     <div class="ml-auto">
-                        @if($customizationRequest->status == 0)
-                            <span class="badge badge-warning badge-lg">New</span>
-                        @elseif($customizationRequest->status == 1)
-                            <span class="badge badge-info badge-lg">In Progress</span>
-                        @else
-                            <span class="badge badge-success badge-lg">Completed</span>
-                        @endif
+                        <span class="badge {{ $customizationRequest->status_badge }}" style="font-size:13px;padding:6px 12px;">
+                            {{ $customizationRequest->status_label }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -131,11 +127,17 @@
                             <div class="form-group">
                                 <label>Status</label>
                                 <select name="status" id="statusSelect" class="form-control">
-                                    @if(!$isTech)
-                                    <option value="0" {{ $customizationRequest->status == 0 ? 'selected' : '' }}>New</option>
+                                    @if($isTech)
+                                        <option value="2" {{ $customizationRequest->status == 2 ? 'selected' : '' }}>In Review</option>
+                                        <option value="3" {{ $customizationRequest->status == 3 ? 'selected' : '' }}>Sent for Review</option>
+                                    @else
+                                        <option value="0" {{ $customizationRequest->status == 0 ? 'selected' : '' }}>Pending</option>
+                                        <option value="1" {{ $customizationRequest->status == 1 ? 'selected' : '' }}>Assigned</option>
+                                        <option value="2" {{ $customizationRequest->status == 2 ? 'selected' : '' }}>In Review</option>
+                                        <option value="3" {{ $customizationRequest->status == 3 ? 'selected' : '' }}>Sent for Review</option>
+                                        <option value="4" {{ $customizationRequest->status == 4 ? 'selected' : '' }}>Approved</option>
+                                        <option value="5" {{ $customizationRequest->status == 5 ? 'selected' : '' }}>Completed</option>
                                     @endif
-                                    <option value="1" {{ $customizationRequest->status == 1 ? 'selected' : '' }}>In Progress</option>
-                                    <option value="2" {{ $customizationRequest->status == 2 ? 'selected' : '' }}>Completed</option>
                                 </select>
                             </div>
                         </div>

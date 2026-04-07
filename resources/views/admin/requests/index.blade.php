@@ -22,9 +22,12 @@
                             <label>Status</label>
                             <select name="status" class="form-control select2">
                                 <option value="">All</option>
-                                <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>New</option>
-                                <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>In Progress</option>
-                                <option value="2" {{ request('status') == '2' ? 'selected' : '' }}>Completed</option>
+                                <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Pending</option>
+                                <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Assigned</option>
+                                <option value="2" {{ request('status') == '2' ? 'selected' : '' }}>In Review</option>
+                                <option value="3" {{ request('status') == '3' ? 'selected' : '' }}>Sent for Review</option>
+                                <option value="4" {{ request('status') == '4' ? 'selected' : '' }}>Approved</option>
+                                <option value="5" {{ request('status') == '5' ? 'selected' : '' }}>Completed</option>
                             </select>
                         </div>
                         @if(!$isTech)
@@ -93,13 +96,7 @@
                                 <td>{{ $req->first_name }} {{ $req->last_name }}</td>
                                 <td>{{ $req->company_name }}</td>
                                 <td>
-                                    @if($req->status == 0)
-                                        <span class="badge badge-warning">New</span>
-                                    @elseif($req->status == 1)
-                                        <span class="badge badge-info">In Progress</span>
-                                    @else
-                                        <span class="badge badge-success">Completed</span>
-                                    @endif
+                                    <span class="badge {{ $req->status_badge }}">{{ $req->status_label }}</span>
                                 </td>
                                 @if(!$isTech)
                                 <td>

@@ -55,7 +55,3 @@ Lives at `d:/gowolo/customization`. Main dashboard app is at `d:/gowolo/dashboar
 - `spatie/laravel-activitylog` — audit log
 - `intervention/image-laravel` — image processing
 
-## Default Super Admin
-- Email: `admin@gowologlobal.com`
-- Password: `Admin@12345` (change after first login)
-- Created by `RolesAndPermissionsSeeder`

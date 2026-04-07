@@ -1,0 +1,101 @@
+label.error{
+	white-space:normal;
+}
+.custom-select{
+	min-width: 60px;
+}
+
+.form-group-default.active {
+	border-color: #1572e8 !important;
+    background-color: #ffffff;
+}
+.form-group-default.error-cont {
+	border-color: #F25961 !important;
+}
+.form-group-default.active label:not(.error){
+    color: #1572e8!important;
+    opacity: 1 !important;
+}
+.editable-input .form-control{
+	padding: 0.3rem 1rem;
+}
+.table.dataTable {
+	border-spacing: 1px;
+}
+.table.dataTable thead th{
+	height: 50px;
+}
+.form-group-password .show-password{
+	position: absolute;
+    right: 24px;
+    top: 54%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    cursor: pointer;
+}
+.bg-white{
+    background: #FFF !important;
+}
+/* google translate */
+body {
+    top: 0px !important;
+}
+#mcTooltipWrapper {
+    display:none;
+}
+/* #google_translate_element {
+
+}*/
+.goog-te-menu-value {
+    color: #fff !important;
+}
+
+.goog-te-menu-value:before {
+font-family: 'Material Icons';
+content: "";
+margin-right: 16px;
+font-size: 2rem;
+vertical-align: -10px;
+}
+.goog-te-menu-value span {
+    border:none;
+    text-decoration: none;
+       font-size: 13px;
+        font-weight: 600;
+}
+.goog-te-gadget-icon {
+    background-image: url(https://placehold.it/32) !important;
+    background-position: 0px 0px;
+    height: 32px !important;
+    width: 32px !important;
+    margin-right: 8px !important;
+    display: none;
+}
+ .goog-te-gadget-simple .goog-te-menu-value span{
+        display: none;
+    }
+    .goog-te-gadget-simple .goog-te-menu-value span:nth-child(1){
+        display: initial;
+        color: #fff !important;
+    }
+.goog-te-menu-value span:nth-child(3) {
+    border: none !important;
+    font-family: 'Material Icons';
+}
+.goog-te-gadget-simple {
+    background: none !important;
+    border: none !important;
+     background-color: #fff0 !important;
+    padding-top: 10px !important;
+}
+  .goog-te-gadget-simple a:hover{
+        /* background-color: #1c2b36 !important; */
+        text-decoration: none;
+
+    }
+.goog-te-banner-frame.skiptranslate {
+display: none !important;
+}
+#goog-gt-tt {
+    display:none !important;
+}

@@ -45,21 +45,49 @@ class CustomizationRequest extends Model
         ];
     }
 
-    // Status labels
+    // Status constants
+    const STATUS_PENDING         = 0;
+    const STATUS_ASSIGNED        = 1;
+    const STATUS_IN_REVIEW       = 2;
+    const STATUS_SENT_FOR_REVIEW = 3;
+    const STATUS_APPROVED        = 4;
+    const STATUS_COMPLETED       = 5;
+
+    // Backward-compatible alias
     const STATUS_NEW         = 0;
     const STATUS_IN_PROGRESS = 1;
-    const STATUS_COMPLETED   = 2;
 
     const PAY_TYPE_FREE = 1;
     const PAY_TYPE_PAID = 2;
 
+    public static function statuses(): array
+    {
+        return [
+            self::STATUS_PENDING         => 'Pending',
+            self::STATUS_ASSIGNED        => 'Assigned',
+            self::STATUS_IN_REVIEW       => 'In Review',
+            self::STATUS_SENT_FOR_REVIEW => 'Sent for Review',
+            self::STATUS_APPROVED        => 'Approved',
+            self::STATUS_COMPLETED       => 'Completed',
+        ];
+    }
+
     public function getStatusLabelAttribute(): string
     {
+        return self::statuses()[$this->status] ?? 'Unknown';
+    }
+
+    /** Badge class for each status */
+    public function getStatusBadgeAttribute(): string
+    {
         return match ($this->status) {
-            self::STATUS_NEW         => 'New',
-            self::STATUS_IN_PROGRESS => 'In Progress',
-            self::STATUS_COMPLETED   => 'Completed',
-            default                  => 'Unknown',
+            self::STATUS_PENDING         => 'badge-warning',
+            self::STATUS_ASSIGNED        => 'badge-info',
+            self::STATUS_IN_REVIEW       => 'badge-primary',
+            self::STATUS_SENT_FOR_REVIEW => 'badge-secondary',
+            self::STATUS_APPROVED        => 'badge-success',
+            self::STATUS_COMPLETED       => 'badge-dark',
+            default                      => 'badge-light',
         };
     }
 

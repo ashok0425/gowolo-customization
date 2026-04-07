@@ -43,8 +43,8 @@
                     </div>
                     <div class="col col-stats ml-3 ml-sm-0">
                         <div class="numbers">
-                            <p class="card-category">New</p>
-                            <h4 class="card-title">{{ $stats['new'] }}</h4>
+                            <p class="card-category">Pending</p>
+                            <h4 class="card-title">{{ $stats['pending'] }}</h4>
                         </div>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
                 <div class="row align-items-center">
                     <div class="col-icon">
                         <div class="icon-big text-center icon-info bubble-shadow-small">
-                            <i class="fas fa-spinner"></i>
+                            <i class="fas fa-user-check"></i>
                         </div>
                     </div>
                     <div class="col col-stats ml-3 ml-sm-0">
@@ -125,13 +125,7 @@
                                 <td>{{ $req->first_name }} {{ $req->last_name }}</td>
                                 <td>{{ $req->company_name }}</td>
                                 <td>
-                                    @if($req->status == 0)
-                                        <span class="badge badge-warning">New</span>
-                                    @elseif($req->status == 1)
-                                        <span class="badge badge-info">In Progress</span>
-                                    @else
-                                        <span class="badge badge-success">Completed</span>
-                                    @endif
+                                    <span class="badge {{ $req->status_badge }}">{{ $req->status_label }}</span>
                                 </td>
                                 <td>
                                     @if($req->pay_type == 1)

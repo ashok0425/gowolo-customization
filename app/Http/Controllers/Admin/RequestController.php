@@ -102,7 +102,7 @@ class RequestController extends Controller
             'assigned_tech_name2' => $tech2?->full_name,
             'supervisor_id'       => $supervisor?->id,
             'supervisor_name'     => $supervisor?->full_name,
-            'status'              => CustomizationRequest::STATUS_IN_PROGRESS,
+            'status'              => CustomizationRequest::STATUS_ASSIGNED,
             'tech_receive_date'   => now(),
             'last_updated_by'     => $user->id,
         ]);
@@ -131,9 +131,10 @@ class RequestController extends Controller
                 $customizationRequest->assigned_tech_id2 == $user->id,
                 403
             );
-            $request->validate(['status' => 'required|in:1,2']);
+            // Technicians can move: Assigned→In Review→Sent for Review
+            $request->validate(['status' => 'required|in:2,3']);
         } else {
-            $request->validate(['status' => 'required|in:0,1,2']);
+            $request->validate(['status' => 'required|in:0,1,2,3,4,5']);
         }
 
         $oldStatus = $customizationRequest->status;
@@ -145,8 +146,8 @@ class RequestController extends Controller
 
         if ($request->status == CustomizationRequest::STATUS_COMPLETED) {
             $data['date_complete'] = now();
-            if ($customizationRequest->tech_process_date) {
-                $data['num_of_days'] = $this->calcBusinessDays($customizationRequest->tech_process_date, now());
+            if ($customizationRequest->tech_receive_date) {
+                $data['num_of_days'] = $this->calcBusinessDays($customizationRequest->tech_receive_date, now());
             }
         }
 

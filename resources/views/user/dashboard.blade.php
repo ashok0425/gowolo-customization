@@ -52,13 +52,7 @@
                                 <td><strong>{{ $req->ref_number }}</strong></td>
                                 <td>{{ $req->company_name }}</td>
                                 <td>
-                                    @if($req->status == 0)
-                                        <span class="badge badge-warning">New</span>
-                                    @elseif($req->status == 1)
-                                        <span class="badge badge-info">In Progress</span>
-                                    @else
-                                        <span class="badge badge-success">Completed</span>
-                                    @endif
+                                    <span class="badge {{ $req->status_badge }}">{{ $req->status_label }}</span>
                                 </td>
                                 <td>
                                     @if($req->pay_type == 1)

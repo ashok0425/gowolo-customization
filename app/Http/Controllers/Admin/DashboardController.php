@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CustomizationRequest;
-use App\Models\PortalUser;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -22,8 +21,13 @@ class DashboardController extends Controller
 
             $stats = [
                 'total'       => (clone $base)->count(),
-                'new'         => 0,
-                'in_progress' => (clone $base)->where('status', CustomizationRequest::STATUS_IN_PROGRESS)->count(),
+                'pending'     => 0,
+                'in_progress' => (clone $base)->whereIn('status', [
+                    CustomizationRequest::STATUS_ASSIGNED,
+                    CustomizationRequest::STATUS_IN_REVIEW,
+                    CustomizationRequest::STATUS_SENT_FOR_REVIEW,
+                    CustomizationRequest::STATUS_APPROVED,
+                ])->count(),
                 'completed'   => (clone $base)->where('status', CustomizationRequest::STATUS_COMPLETED)->count(),
             ];
 
@@ -31,8 +35,13 @@ class DashboardController extends Controller
         } else {
             $stats = [
                 'total'       => CustomizationRequest::count(),
-                'new'         => CustomizationRequest::where('status', CustomizationRequest::STATUS_NEW)->count(),
-                'in_progress' => CustomizationRequest::where('status', CustomizationRequest::STATUS_IN_PROGRESS)->count(),
+                'pending'     => CustomizationRequest::where('status', CustomizationRequest::STATUS_PENDING)->count(),
+                'in_progress' => CustomizationRequest::whereIn('status', [
+                    CustomizationRequest::STATUS_ASSIGNED,
+                    CustomizationRequest::STATUS_IN_REVIEW,
+                    CustomizationRequest::STATUS_SENT_FOR_REVIEW,
+                    CustomizationRequest::STATUS_APPROVED,
+                ])->count(),
                 'completed'   => CustomizationRequest::where('status', CustomizationRequest::STATUS_COMPLETED)->count(),
             ];
 

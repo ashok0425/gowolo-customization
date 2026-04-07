@@ -1,0 +1,70 @@
+.sidebar-wrapper, .main-header, .logo-header{
+   background-color: #1C2B36 !important;
+
+}
+.logo-header{
+    background-color: #1C2B36 !important;
+ }
+.nav-item a i{
+    color: white !important;
+}
+.nav-item1 a:hover {
+    background-color:#17a2b8 !important;
+}
+.goog-te-menu-value:hover{
+    background-color:#17a2b8 !important;
+}
+
+.nav-item a p{
+    color: white !important;
+}
+#mailDropdown:hover ,#notifDropdown:hover ,#currencyDropdown:hover{
+    background-color: #17a2b8 !important;
+}
+#mailDropdown ,#notifDropdown ,#currencyDropdown{
+    background-color:#1c2b36 !important;
+    
+}
+.toggle-sidebar i {
+    color: white !important;
+}
+
+.submenu {
+    background: none;
+}
+.hidden-caret .nav-link {
+    background-color: none !important;
+}
+.wrapper ,body{
+        background: #eceef2;
+}
+
+/* table head color */
+.table_head{
+    background-color:#1c2b36;
+    color:white;
+}
+/* add button bg color and hover */
+#addModalOpen,
+#invo,
+#addReportOpen{
+    border:none;
+    background-color: #1c2b36;
+    color:white;
+}
+#addModalOpen:hover,
+#invo:hover,
+#addReportOpen{
+    background-color: #17a2b8 !important;
+}
+
+/* submit button color  */
+#preview_ad,
+#addRowButton,
+#addreport,
+#editreport,
+#addRowButton1{
+    border:none;
+    background-color: #1c2b36;
+    color:white;
+}

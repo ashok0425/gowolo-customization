@@ -16,22 +16,25 @@
 <div class="row">
     <div class="col-md-8">
         {{-- Status Banner --}}
-        <div class="card mb-3
-            @if($customizationRequest->status == 0) border-warning
-            @elseif($customizationRequest->status == 1) border-info
-            @else border-success @endif" style="border-left-width:4px!important">
+        @php
+            $statusConfig = [
+                0 => ['border' => 'border-warning',   'icon' => 'fa-clock text-warning',         'msg' => 'Your request has been received and is awaiting assignment.'],
+                1 => ['border' => 'border-info',      'icon' => 'fa-user-check text-info',        'msg' => 'A technician has been assigned and will start working shortly.'],
+                2 => ['border' => 'border-primary',   'icon' => 'fa-search text-primary',         'msg' => 'Your request is currently under review by our team.'],
+                3 => ['border' => 'border-secondary', 'icon' => 'fa-paper-plane text-secondary',  'msg' => 'We have sent the work to you for review. Please check and respond.'],
+                4 => ['border' => 'border-success',   'icon' => 'fa-thumbs-up text-success',      'msg' => 'The customization has been approved and is being finalized.'],
+                5 => ['border' => 'border-dark',      'icon' => 'fa-check-circle text-dark',      'msg' => 'Your customization is complete! Delivered on ' . ($customizationRequest->date_complete?->format('M d, Y') ?? '—') . '.'],
+            ];
+            $sc = $statusConfig[$customizationRequest->status] ?? $statusConfig[0];
+        @endphp
+        <div class="card mb-3 {{ $sc['border'] }}" style="border-left-width:4px!important">
             <div class="card-body py-3">
                 <div class="d-flex align-items-center">
-                    @if($customizationRequest->status == 0)
-                        <i class="fas fa-clock fa-2x text-warning mr-3"></i>
-                        <div><strong>Awaiting Review</strong><br><small class="text-muted">Your request has been received and will be reviewed shortly.</small></div>
-                    @elseif($customizationRequest->status == 1)
-                        <i class="fas fa-spinner fa-spin fa-2x text-info mr-3"></i>
-                        <div><strong>In Progress</strong><br><small class="text-muted">Our team is working on your customization.</small></div>
-                    @else
-                        <i class="fas fa-check-circle fa-2x text-success mr-3"></i>
-                        <div><strong>Completed</strong><br><small class="text-muted">Your customization has been completed on {{ $customizationRequest->date_complete?->format('M d, Y') }}.</small></div>
-                    @endif
+                    <i class="fas {{ $sc['icon'] }} fa-2x mr-3"></i>
+                    <div>
+                        <strong>{{ $customizationRequest->status_label }}</strong><br>
+                        <small class="text-muted">{{ $sc['msg'] }}</small>
+                    </div>
                 </div>
             </div>
         </div>
