@@ -3,21 +3,29 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\CustomizationActivityLog;
 use App\Models\CustomizationRequest;
 use App\Models\PortalUser;
-use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Spatie\Activitylog\Models\Activity;
 
 class RequestController extends Controller
 {
-    public function __construct(private ActivityLogService $logger) {}
-
     public function index(Request $request)
     {
+        $user  = Auth::guard('portal')->user();
+        $isTech = $user->hasRole('technician');
+
         $query = CustomizationRequest::with(['primaryTechnician', 'secondaryTechnician', 'supervisor'])
             ->orderByDesc('created_at');
+
+        // Technicians only see their assigned requests
+        if ($isTech) {
+            $query->where(function ($q) use ($user) {
+                $q->where('assigned_tech_id1', $user->id)
+                  ->orWhere('assigned_tech_id2', $user->id);
+            });
+        }
 
         if ($request->filled('status') && $request->status !== '') {
             $query->where('status', $request->status);
@@ -42,36 +50,50 @@ class RequestController extends Controller
             });
         }
 
-        $requests     = $query->paginate(20)->withQueryString();
-        $technicians  = PortalUser::role('technician')->where('is_active', true)->get();
+        $requests    = $query->paginate(20)->withQueryString();
+        $technicians = $isTech ? collect() : PortalUser::role('technician')->where('is_active', true)->get();
 
-        return view('admin.requests.index', compact('requests', 'technicians'));
+        return view('admin.requests.index', compact('requests', 'technicians', 'isTech'));
     }
 
     public function show(CustomizationRequest $customizationRequest)
     {
-        $customizationRequest->load(['answers', 'files', 'chats', 'activityLogs', 'primaryTechnician', 'secondaryTechnician', 'supervisor']);
-        $technicians = PortalUser::role('technician')->where('is_active', true)->get();
-        $supervisors = PortalUser::role('supervisor')->orWhereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+        $user   = Auth::guard('portal')->user();
+        $isTech = $user->hasRole('technician');
 
-        return view('admin.requests.show', compact('customizationRequest', 'technicians', 'supervisors'));
+        if ($isTech) {
+            abort_unless(
+                $customizationRequest->assigned_tech_id1 == $user->id ||
+                $customizationRequest->assigned_tech_id2 == $user->id,
+                403, 'You are not assigned to this request.'
+            );
+        }
+
+        $customizationRequest->load(['answers', 'files', 'primaryTechnician', 'secondaryTechnician', 'supervisor']);
+        $technicians = $isTech ? collect() : PortalUser::role('technician')->where('is_active', true)->get();
+        $supervisors = $isTech ? collect() : PortalUser::role('supervisor')->orWhereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'supervisor']))->where('is_active', true)->get();
+
+        return view('admin.requests.show', compact('customizationRequest', 'technicians', 'supervisors', 'isTech'));
     }
 
     public function assign(Request $request, CustomizationRequest $customizationRequest)
     {
+        $user = Auth::guard('portal')->user();
+        abort_if($user->hasRole('technician'), 403, 'Technicians cannot assign requests.');
+
         $request->validate([
             'assigned_tech_id1' => 'required|exists:portal_users,id',
         ]);
 
+        $tech1      = PortalUser::find($request->assigned_tech_id1);
+        $tech2      = $request->filled('assigned_tech_id2') ? PortalUser::find($request->assigned_tech_id2) : null;
+        $supervisor = $request->filled('supervisor_id') ? PortalUser::find($request->supervisor_id) : null;
+
         $old = [
-            'tech1' => $customizationRequest->assigned_tech_name1,
-            'tech2' => $customizationRequest->assigned_tech_name2,
+            'tech1'      => $customizationRequest->assigned_tech_name1,
+            'tech2'      => $customizationRequest->assigned_tech_name2,
             'supervisor' => $customizationRequest->supervisor_name,
         ];
-
-        $tech1 = PortalUser::find($request->assigned_tech_id1);
-        $tech2 = $request->filled('assigned_tech_id2') ? PortalUser::find($request->assigned_tech_id2) : null;
-        $supervisor = $request->filled('supervisor_id') ? PortalUser::find($request->supervisor_id) : null;
 
         $customizationRequest->update([
             'assigned_tech_id1'   => $tech1->id,
@@ -82,30 +104,43 @@ class RequestController extends Controller
             'supervisor_name'     => $supervisor?->full_name,
             'status'              => CustomizationRequest::STATUS_IN_PROGRESS,
             'tech_receive_date'   => now(),
-            'last_updated_by'     => Auth::guard('portal')->id(),
+            'last_updated_by'     => $user->id,
         ]);
 
-        $this->logger->log(
-            'technician_assigned',
-            $customizationRequest->id,
-            $old,
-            ['tech1' => $tech1->full_name, 'tech2' => $tech2?->full_name, 'supervisor' => $supervisor?->full_name],
-            'Technician assigned',
-            $request
-        );
+        activity('customization')
+            ->causedBy($user)
+            ->performedOn($customizationRequest)
+            ->withProperties(['old' => $old, 'new' => [
+                'tech1' => $tech1->full_name,
+                'tech2' => $tech2?->full_name,
+                'supervisor' => $supervisor?->full_name,
+            ]])
+            ->log('technician_assigned');
 
         return back()->with('success', 'Technician assigned successfully.');
     }
 
     public function updateStatus(Request $request, CustomizationRequest $customizationRequest)
     {
-        $request->validate(['status' => 'required|in:0,1,2']);
+        $user   = Auth::guard('portal')->user();
+        $isTech = $user->hasRole('technician');
+
+        if ($isTech) {
+            abort_unless(
+                $customizationRequest->assigned_tech_id1 == $user->id ||
+                $customizationRequest->assigned_tech_id2 == $user->id,
+                403
+            );
+            $request->validate(['status' => 'required|in:1,2']);
+        } else {
+            $request->validate(['status' => 'required|in:0,1,2']);
+        }
 
         $oldStatus = $customizationRequest->status;
 
         $data = [
             'status'          => $request->status,
-            'last_updated_by' => Auth::guard('portal')->id(),
+            'last_updated_by' => $user->id,
         ];
 
         if ($request->status == CustomizationRequest::STATUS_COMPLETED) {
@@ -119,28 +154,29 @@ class RequestController extends Controller
             $data['technician_comments'] = $request->technician_comments;
         }
 
-        if ($request->filled('pay_type')) {
+        if (!$isTech && $request->filled('pay_type')) {
             $data['pay_type']   = $request->pay_type;
             $data['pay_amount'] = $request->pay_amount ?? 0;
         }
 
         $customizationRequest->update($data);
 
-        $this->logger->log(
-            'status_changed',
-            $customizationRequest->id,
-            ['status' => $oldStatus],
-            ['status' => $request->status],
-            'Status updated',
-            $request
-        );
+        activity('customization')
+            ->causedBy($user)
+            ->performedOn($customizationRequest)
+            ->withProperties(['old' => ['status' => $oldStatus], 'new' => ['status' => $request->status]])
+            ->log('status_changed');
 
         return response()->json(['success' => true, 'message' => 'Status updated.']);
     }
 
     public function logs(CustomizationRequest $customizationRequest)
     {
-        $logs = $customizationRequest->activityLogs()->paginate(30);
+        $logs = Activity::where('subject_type', CustomizationRequest::class)
+            ->where('subject_id', $customizationRequest->id)
+            ->latest()
+            ->paginate(30);
+
         return view('admin.requests.logs', compact('customizationRequest', 'logs'));
     }
 
@@ -150,9 +186,7 @@ class RequestController extends Controller
         $end   = \Carbon\Carbon::parse($end);
         $days  = 0;
         while ($start->lt($end)) {
-            if (!$start->isWeekend()) {
-                $days++;
-            }
+            if (!$start->isWeekend()) $days++;
             $start->addDay();
         }
         return $days;

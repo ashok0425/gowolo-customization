@@ -80,7 +80,7 @@ class CustomizationRequest extends Model
 
     public function activityLogs()
     {
-        return $this->hasMany(CustomizationActivityLog::class, 'request_id')->orderByDesc('created_at');
+        return $this->morphMany(\Spatie\Activitylog\Models\Activity::class, 'subject')->latest();
     }
 
     public function primaryTechnician()

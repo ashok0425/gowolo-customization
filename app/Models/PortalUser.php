@@ -6,18 +6,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
 
 class PortalUser extends Authenticatable
 {
-    use Notifiable, HasRoles, SoftDeletes, LogsActivity;
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()->logOnly(['name', 'email', 'is_active'])->logOnlyDirty();
-    }
+    use Notifiable, HasRoles, SoftDeletes;
 
     protected $table = 'portal_users';
 
@@ -31,7 +24,7 @@ class PortalUser extends Authenticatable
     protected function casts(): array
     {
         return [
-            'password' => 'hashed',
+            'password'  => 'hashed',
             'is_active' => 'boolean',
         ];
     }

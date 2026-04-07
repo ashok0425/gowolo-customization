@@ -5,16 +5,12 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\CustomizationChat;
 use App\Models\CustomizationRequest;
-use App\Services\ActivityLogService;
 use App\Services\BunnyStorageService;
 use Illuminate\Http\Request;
 
 class ChatController extends Controller
 {
-    public function __construct(
-        private BunnyStorageService $bunny,
-        private ActivityLogService $logger
-    ) {}
+    public function __construct(private BunnyStorageService $bunny) {}
 
     public function show(CustomizationRequest $customizationRequest)
     {
@@ -23,13 +19,11 @@ class ChatController extends Controller
         $chats  = $customizationRequest->chats()->get();
         $lastId = $chats->last()?->id ?? 0;
 
-        // Mark staff messages as read by user
         CustomizationChat::where('request_id', $customizationRequest->id)
             ->where('sender_type', 'portal_user')
             ->where('read_by_user', false)
             ->update(['read_by_user' => true]);
 
-        // Clear user alert flag
         $customizationRequest->update(['user_alert' => true]);
 
         return view('user.chat.show', compact('customizationRequest', 'chats', 'lastId'));
@@ -47,12 +41,12 @@ class ChatController extends Controller
         $ssoUser = session('auth_user');
 
         $chat = new CustomizationChat([
-            'request_id'    => $customizationRequest->id,
-            'sender_type'   => 'user',
-            'sender_id'     => $ssoUser['user_id'],
-            'sender_name'   => $ssoUser['name'] ?? $ssoUser['email'],
-            'message'       => $request->message,
-            'read_by_user'  => true,
+            'request_id'   => $customizationRequest->id,
+            'sender_type'  => 'user',
+            'sender_id'    => $ssoUser['user_id'],
+            'sender_name'  => $ssoUser['name'] ?? $ssoUser['email'],
+            'message'      => $request->message,
+            'read_by_user' => true,
         ]);
 
         if ($request->hasFile('file')) {
@@ -77,8 +71,6 @@ class ChatController extends Controller
 
         $chat->save();
 
-        $this->logger->log('chat_sent', $customizationRequest->id, [], [], 'User sent message', $request);
-
         return response()->json(['success' => true]);
     }
 
@@ -91,8 +83,7 @@ class ChatController extends Controller
 
     private function authorizeSso(CustomizationRequest $request): void
     {
-        $ssoUser = session('auth_user');
-        if ($request->user_id != $ssoUser['user_id']) {
+        if ($request->user_id != session('auth_user.user_id')) {
             abort(403);
         }
     }

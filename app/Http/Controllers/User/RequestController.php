@@ -3,17 +3,15 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\CustomizationRequest;
 use App\Models\CustomizationAnswer;
 use App\Models\CustomizationFile;
-use App\Services\ActivityLogService;
+use App\Models\CustomizationRequest;
 use App\Services\BunnyStorageService;
 use App\Services\SiteInfoService;
 use Illuminate\Http\Request;
 
 class RequestController extends Controller
 {
-    // 17 standard questions
     const QUESTIONS = [
         'question_1'  => 'What is the name of your community/business?',
         'question_2'  => 'What is your community handle name?',
@@ -39,14 +37,13 @@ class RequestController extends Controller
     ];
 
     public function __construct(
-        private ActivityLogService $logger,
         private BunnyStorageService $bunny,
         private SiteInfoService $siteInfo
     ) {}
 
     public function dashboard()
     {
-        $ssoUser = session('auth_user');
+        $ssoUser  = session('auth_user');
         $requests = CustomizationRequest::where('user_id', $ssoUser['user_id'])
             ->with(['primaryTechnician'])
             ->orderByDesc('created_at')
@@ -57,9 +54,9 @@ class RequestController extends Controller
 
     public function create()
     {
-        $ssoUser = session('auth_user');
-        $price   = $this->siteInfo->getCustomizationPrice();
-        $siteInfo = $this->siteInfo->getSiteInfo($ssoUser['user_id']);
+        $ssoUser   = session('auth_user');
+        $price     = $this->siteInfo->getCustomizationPrice();
+        $siteInfo  = $this->siteInfo->getSiteInfo($ssoUser['user_id']);
         $questions = self::QUESTIONS;
 
         return view('user.request.create', compact('price', 'siteInfo', 'questions'));
@@ -80,40 +77,37 @@ class RequestController extends Controller
             'question_3'      => 'required',
         ]);
 
-        $ssoUser = session('auth_user');
-
-        // Generate reference number
-        $lastId   = CustomizationRequest::max('id') ?? 0;
+        $ssoUser   = session('auth_user');
+        $lastId    = CustomizationRequest::max('id') ?? 0;
         $refNumber = 'REQ' . date('mY') . ($lastId + 1);
 
         $custRequest = CustomizationRequest::create([
-            'ref_number'      => $refNumber,
-            'user_id'         => $ssoUser['user_id'],
-            'user_email'      => $ssoUser['email'],
-            'user_name'       => $ssoUser['name'],
-            'first_name'      => $request->first_name,
-            'last_name'       => $request->last_name,
-            'email'           => $request->email,
-            'phone'           => $request->phone,
-            'sec_phone'       => $request->sec_phone,
-            'company_name'    => $request->company_name,
-            'company_phone'   => $request->company_phone,
-            'company_address' => $request->company_address,
-            'req_primary_color' => $request->req_primary_color,
-            'req_sec_color'   => $request->req_sec_color,
+            'ref_number'          => $refNumber,
+            'user_id'             => $ssoUser['user_id'],
+            'user_email'          => $ssoUser['email'],
+            'user_name'           => $ssoUser['name'],
+            'first_name'          => $request->first_name,
+            'last_name'           => $request->last_name,
+            'email'               => $request->email,
+            'phone'               => $request->phone,
+            'sec_phone'           => $request->sec_phone,
+            'company_name'        => $request->company_name,
+            'company_phone'       => $request->company_phone,
+            'company_address'     => $request->company_address,
+            'req_primary_color'   => $request->req_primary_color,
+            'req_sec_color'       => $request->req_sec_color,
             'request_description' => $request->request_description,
-            'req_logo'        => $request->boolean('req_logo'),
-            'req_icon'        => $request->boolean('req_icon'),
-            'req_app_background' => $request->boolean('req_app_background'),
-            'req_landing_page' => $request->boolean('req_landing_page'),
-            'req_others'      => $request->boolean('req_others'),
-            'login_email'     => $request->login_email,
-            'login_password'  => $request->login_password,
-            'status'          => CustomizationRequest::STATUS_NEW,
-            'pay_type'        => CustomizationRequest::PAY_TYPE_FREE,
+            'req_logo'            => $request->boolean('req_logo'),
+            'req_icon'            => $request->boolean('req_icon'),
+            'req_app_background'  => $request->boolean('req_app_background'),
+            'req_landing_page'    => $request->boolean('req_landing_page'),
+            'req_others'          => $request->boolean('req_others'),
+            'login_email'         => $request->login_email,
+            'login_password'      => $request->login_password,
+            'status'              => CustomizationRequest::STATUS_NEW,
+            'pay_type'            => CustomizationRequest::PAY_TYPE_FREE,
         ]);
 
-        // Save answers
         foreach (self::QUESTIONS as $key => $text) {
             if ($request->filled($key)) {
                 CustomizationAnswer::create([
@@ -125,9 +119,7 @@ class RequestController extends Controller
             }
         }
 
-        // Handle file uploads
-        $fileCategories = ['logo', 'icon', 'app_background', 'document'];
-        foreach ($fileCategories as $category) {
+        foreach (['logo', 'icon', 'app_background', 'document'] as $category) {
             if ($request->hasFile($category)) {
                 $this->storeFile($request->file($category), $custRequest->id, $category, $ssoUser['user_id']);
             }
@@ -139,11 +131,14 @@ class RequestController extends Controller
             }
         }
 
-        $this->logger->log('request_created', $custRequest->id, [], [], 'User submitted request', $request);
+        activity('customization')
+            ->performedOn($custRequest)
+            ->withProperties(['user_id' => $ssoUser['user_id']])
+            ->log('request_created');
 
         return response()->json([
-            'success' => true,
-            'message' => 'Request submitted successfully.',
+            'success'    => true,
+            'message'    => 'Request submitted successfully.',
             'request_id' => $custRequest->id,
             'ref_number' => $custRequest->ref_number,
         ]);
@@ -152,15 +147,14 @@ class RequestController extends Controller
     public function show(CustomizationRequest $customizationRequest)
     {
         $this->authorizeSsoUser($customizationRequest);
-        $customizationRequest->load(['answers', 'files', 'chats', 'primaryTechnician']);
+        $customizationRequest->load(['answers', 'files', 'primaryTechnician']);
 
         return view('user.request.show', compact('customizationRequest'));
     }
 
     private function storeFile($file, int $requestId, string $category, int $userId): void
     {
-        $extension = strtolower($file->getClientOriginalExtension());
-
+        $extension  = strtolower($file->getClientOriginalExtension());
         $fileRecord = CustomizationFile::create([
             'request_id'       => $requestId,
             'uploaded_by_type' => 'user',
@@ -176,7 +170,6 @@ class RequestController extends Controller
                 $bunnyPath = $this->bunny->upload($file, "requests/{$category}s");
                 $fileRecord->update(['bunny_path' => $bunnyPath, 'bunny_synced' => true]);
             } catch (\Exception) {
-                // Fall back to local
                 $filename = time() . '_' . uniqid() . '.' . $extension;
                 $file->move(public_path("uploads/requests/{$category}s"), $filename);
                 $fileRecord->update(['local_path' => "/uploads/requests/{$category}s/{$filename}"]);
@@ -190,8 +183,7 @@ class RequestController extends Controller
 
     private function authorizeSsoUser(CustomizationRequest $request): void
     {
-        $ssoUser = session('auth_user');
-        if ($request->user_id != $ssoUser['user_id']) {
+        if ($request->user_id != session('auth_user.user_id')) {
             abort(403);
         }
     }

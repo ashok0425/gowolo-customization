@@ -5,24 +5,30 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CustomizationChat;
 use App\Models\CustomizationRequest;
-use App\Services\ActivityLogService;
 use App\Services\BunnyStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ChatController extends Controller
 {
-    public function __construct(
-        private BunnyStorageService $bunny,
-        private ActivityLogService $logger
-    ) {}
+    public function __construct(private BunnyStorageService $bunny) {}
 
     public function show(CustomizationRequest $customizationRequest)
     {
-        $chats = $customizationRequest->chats()->get();
+        $user   = Auth::guard('portal')->user();
+        $isTech = $user->hasRole('technician');
+
+        if ($isTech) {
+            abort_unless(
+                $customizationRequest->assigned_tech_id1 == $user->id ||
+                $customizationRequest->assigned_tech_id2 == $user->id,
+                403
+            );
+        }
+
+        $chats  = $customizationRequest->chats()->get();
         $lastId = $chats->last()?->id ?? 0;
 
-        // Mark unread messages as read by staff
         CustomizationChat::where('request_id', $customizationRequest->id)
             ->where('sender_type', 'user')
             ->where('read_by_staff', false)
@@ -33,19 +39,28 @@ class ChatController extends Controller
 
     public function store(Request $request, CustomizationRequest $customizationRequest)
     {
+        $user   = Auth::guard('portal')->user();
+        $isTech = $user->hasRole('technician');
+
+        if ($isTech) {
+            abort_unless(
+                $customizationRequest->assigned_tech_id1 == $user->id ||
+                $customizationRequest->assigned_tech_id2 == $user->id,
+                403
+            );
+        }
+
         $request->validate([
             'message' => 'required_without:file|nullable|string',
             'file'    => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf,doc,docx,mp4|max:20480',
         ]);
 
-        $user = Auth::guard('portal')->user();
-
         $chat = new CustomizationChat([
-            'request_id'  => $customizationRequest->id,
-            'sender_type' => 'portal_user',
-            'sender_id'   => $user->id,
-            'sender_name' => $user->full_name,
-            'message'     => $request->message,
+            'request_id'    => $customizationRequest->id,
+            'sender_type'   => 'portal_user',
+            'sender_id'     => $user->id,
+            'sender_name'   => $user->full_name,
+            'message'       => $request->message,
             'read_by_staff' => true,
         ]);
 
@@ -70,11 +85,12 @@ class ChatController extends Controller
         }
 
         $chat->save();
-
-        // Mark user-side as unread so they get notified
         $customizationRequest->update(['user_alert' => false]);
 
-        $this->logger->log('chat_sent', $customizationRequest->id, [], [], 'Staff sent message', $request);
+        activity('customization')
+            ->causedBy($user)
+            ->performedOn($customizationRequest)
+            ->log('chat_sent');
 
         return response()->json(['success' => true, 'chat' => $this->formatChat($chat)]);
     }
@@ -84,23 +100,22 @@ class ChatController extends Controller
         if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) return 'image';
         if ($ext === 'pdf') return 'pdf';
         if (in_array($ext, ['mp4', 'webm'])) return 'video';
-        if (in_array($ext, ['doc', 'docx'])) return 'document';
-        return 'unknown';
+        return 'document';
     }
 
     private function formatChat(CustomizationChat $chat): array
     {
         return [
-            'id'          => $chat->id,
-            'sender_type' => $chat->sender_type,
-            'sender_name' => $chat->sender_name,
-            'message'     => $chat->message,
-            'file_type'   => $chat->file_type,
-            'file_url'    => $chat->bunny_path
+            'id'                => $chat->id,
+            'sender_type'       => $chat->sender_type,
+            'sender_name'       => $chat->sender_name,
+            'message'           => $chat->message,
+            'file_type'         => $chat->file_type,
+            'file_url'          => $chat->bunny_path
                 ? app(BunnyStorageService::class)->signedUrl($chat->bunny_path)
                 : ($chat->local_path ? asset($chat->local_path) : null),
             'original_filename' => $chat->original_filename,
-            'created_at'  => $chat->created_at->format('M d, Y H:i'),
+            'created_at'        => $chat->created_at->format('M d, Y H:i'),
         ];
     }
 }
