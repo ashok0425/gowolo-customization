@@ -3,24 +3,26 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\RequestNotificationMail;
 use App\Models\CustomizationRequest;
 use App\Models\PortalUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Activitylog\Models\Activity;
 
 class RequestController extends Controller
 {
     public function index(Request $request)
     {
-        $user  = Auth::guard('portal')->user();
-        $isTech = $user->hasRole('technician');
+        $user    = Auth::guard('portal')->user();
+        $seeAll  = $user->hasPermissionTo('view_all_requests');
 
         $query = CustomizationRequest::with(['primaryTechnician', 'secondaryTechnician', 'supervisor'])
             ->orderByDesc('created_at');
 
-        // Technicians only see their assigned requests
-        if ($isTech) {
+        // Users without view_all_requests only see their assigned requests
+        if (!$seeAll) {
             $query->where(function ($q) use ($user) {
                 $q->where('assigned_tech_id1', $user->id)
                   ->orWhere('assigned_tech_id2', $user->id);
@@ -36,8 +38,14 @@ class RequestController extends Controller
         if ($request->filled('pay_type')) {
             $query->where('pay_type', $request->pay_type);
         }
-        if ($request->filled('date_from') && $request->filled('date_to')) {
-            $query->whereBetween('created_at', [$request->date_from . ' 00:00:00', $request->date_to . ' 23:59:59']);
+        // Accept either a combined "YYYY-MM-DD - YYYY-MM-DD" range or split date_from/date_to
+        $dateFrom = $request->date_from;
+        $dateTo   = $request->date_to;
+        if ($request->filled('date_range') && str_contains($request->date_range, ' - ')) {
+            [$dateFrom, $dateTo] = array_map('trim', explode(' - ', $request->date_range, 2));
+        }
+        if ($dateFrom && $dateTo) {
+            $query->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
         }
         if ($request->filled('search')) {
             $q = $request->search;
@@ -51,17 +59,17 @@ class RequestController extends Controller
         }
 
         $requests    = $query->paginate(20)->withQueryString();
-        $technicians = $isTech ? collect() : PortalUser::role('technician')->where('is_active', true)->get();
+        $technicians = $seeAll ? PortalUser::where('is_active', true)->get() : collect();
 
-        return view('admin.requests.index', compact('requests', 'technicians', 'isTech'));
+        return view('admin.requests.index', compact('requests', 'technicians', 'seeAll'));
     }
 
     public function show(CustomizationRequest $customizationRequest)
     {
         $user   = Auth::guard('portal')->user();
-        $isTech = $user->hasRole('technician');
+        $seeAll = $user->hasPermissionTo('view_all_requests');
 
-        if ($isTech) {
+        if (!$seeAll) {
             abort_unless(
                 $customizationRequest->assigned_tech_id1 == $user->id ||
                 $customizationRequest->assigned_tech_id2 == $user->id,
@@ -70,16 +78,17 @@ class RequestController extends Controller
         }
 
         $customizationRequest->load(['answers', 'files', 'primaryTechnician', 'secondaryTechnician', 'supervisor']);
-        $technicians = $isTech ? collect() : PortalUser::role('technician')->where('is_active', true)->get();
-        $supervisors = $isTech ? collect() : PortalUser::role('supervisor')->orWhereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'supervisor']))->where('is_active', true)->get();
+        $canAssign   = $user->hasPermissionTo('assign_technician');
+        $technicians = $canAssign ? PortalUser::where('is_active', true)->get() : collect();
+        $supervisors = $canAssign ? PortalUser::where('is_active', true)->get() : collect();
 
-        return view('admin.requests.show', compact('customizationRequest', 'technicians', 'supervisors', 'isTech'));
+        return view('admin.requests.show', compact('customizationRequest', 'technicians', 'supervisors', 'seeAll', 'canAssign'));
     }
 
     public function assign(Request $request, CustomizationRequest $customizationRequest)
     {
         $user = Auth::guard('portal')->user();
-        abort_if($user->hasRole('technician'), 403, 'Technicians cannot assign requests.');
+        abort_unless($user->hasPermissionTo('assign_technician'), 403, 'Not authorized to assign.');
 
         $request->validate([
             'assigned_tech_id1' => 'required|exists:portal_users,id',
@@ -122,16 +131,18 @@ class RequestController extends Controller
 
     public function updateStatus(Request $request, CustomizationRequest $customizationRequest)
     {
-        $user   = Auth::guard('portal')->user();
-        $isTech = $user->hasRole('technician');
+        $user    = Auth::guard('portal')->user();
+        $seeAll  = $user->hasPermissionTo('view_all_requests');
 
-        if ($isTech) {
+        abort_unless($user->hasPermissionTo('update_request_status'), 403);
+
+        if (!$seeAll) {
             abort_unless(
                 $customizationRequest->assigned_tech_id1 == $user->id ||
                 $customizationRequest->assigned_tech_id2 == $user->id,
                 403
             );
-            // Technicians can move: Assigned→In Review→Sent for Review
+            // Restricted users: In Review or Sent for Review only
             $request->validate(['status' => 'required|in:2,3']);
         } else {
             $request->validate(['status' => 'required|in:0,1,2,3,4,5']);
@@ -155,7 +166,7 @@ class RequestController extends Controller
             $data['technician_comments'] = $request->technician_comments;
         }
 
-        if (!$isTech && $request->filled('pay_type')) {
+        if ($seeAll && $request->filled('pay_type')) {
             $data['pay_type']   = $request->pay_type;
             $data['pay_amount'] = $request->pay_amount ?? 0;
         }
@@ -167,6 +178,22 @@ class RequestController extends Controller
             ->performedOn($customizationRequest)
             ->withProperties(['old' => ['status' => $oldStatus], 'new' => ['status' => $request->status]])
             ->log('status_changed');
+
+        // Notify configured email about the status change
+        $notifyEmail = config('mail.notification_email');
+        if ($notifyEmail) {
+            $statuses = CustomizationRequest::statuses();
+            try {
+                Mail::to($notifyEmail)->send(new RequestNotificationMail(
+                    $customizationRequest->fresh(),
+                    'status_changed',
+                    $statuses[$oldStatus] ?? (string) $oldStatus,
+                    $statuses[$request->status] ?? (string) $request->status
+                ));
+            } catch (\Throwable $e) {
+                \Log::warning('Failed to send status-change notification: ' . $e->getMessage());
+            }
+        }
 
         return response()->json(['success' => true, 'message' => 'Status updated.']);
     }

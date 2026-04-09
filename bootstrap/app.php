@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Middleware\PortalAuthenticate;
-use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\SSOAuthenticate;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'portal.auth' => PortalAuthenticate::class,
             'sso.auth'    => SSOAuthenticate::class,
-            'role'        => RoleMiddleware::class,
+            'permission'  => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         ]);
 
         // Exclude SSO and API polling from CSRF

@@ -71,18 +71,6 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Role <span class="text-danger">*</span></label>
-                                <select name="role" class="form-control select2" required>
-                                    @foreach($roles as $role)
-                                    <option value="{{ $role->name }}" {{ $portalUser->hasRole($role->name) ? 'selected' : '' }}>
-                                        {{ ucfirst($role->name) }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
                                 <label>Status</label>
                                 <select name="is_active" class="form-control">
                                     <option value="1" {{ $portalUser->is_active ? 'selected' : '' }}>Active</option>
@@ -90,6 +78,32 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="d-block mb-2"><strong>Permissions</strong>
+                            <small class="text-muted">— Check the actions this user can perform</small>
+                        </label>
+
+                        @if($permissions->isEmpty())
+                            <div class="alert alert-warning">
+                                No permissions found. Run <code>php artisan migrate</code> then <code>php artisan db:seed --class=RolesAndPermissionsSeeder</code>.
+                            </div>
+                        @else
+                            <div class="row perm-grid">
+                                @foreach($permissions as $perm)
+                                <div class="col-md-6 col-lg-4 mb-2">
+                                    <label class="perm-card" for="perm_{{ $perm->name }}">
+                                        <input type="checkbox"
+                                               name="permissions[]" value="{{ $perm->name }}"
+                                               id="perm_{{ $perm->name }}"
+                                               {{ in_array($perm->name, old('permissions', $userPermissions)) ? 'checked' : '' }}>
+                                        <span class="perm-check"></span>
+                                        <span class="perm-text">{{ ucwords(str_replace('_', ' ', $perm->name)) }}</span>
+                                    </label>
+                                </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                     <div class="d-flex justify-content-between mt-3">
                         <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">Cancel</a>

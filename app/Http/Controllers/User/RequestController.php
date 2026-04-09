@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\CustomizationAnswer;
 use App\Models\CustomizationFile;
 use App\Models\CustomizationRequest;
+use App\Mail\RequestNotificationMail;
 use App\Services\BunnyStorageService;
 use App\Services\SiteInfoService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class RequestController extends Controller
 {
@@ -135,6 +137,16 @@ class RequestController extends Controller
             ->performedOn($custRequest)
             ->withProperties(['user_id' => $ssoUser['user_id']])
             ->log('request_created');
+
+        // Notify configured email about the new request
+        $notifyEmail = config('mail.notification_email');
+        if ($notifyEmail) {
+            try {
+                Mail::to($notifyEmail)->send(new RequestNotificationMail($custRequest, 'new'));
+            } catch (\Throwable $e) {
+                \Log::warning('Failed to send new-request notification: ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'success'    => true,

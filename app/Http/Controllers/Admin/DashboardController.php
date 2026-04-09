@@ -11,9 +11,9 @@ class DashboardController extends Controller
     public function index()
     {
         $user   = Auth::guard('portal')->user();
-        $isTech = $user->hasRole('technician');
+        $seeAll = $user->hasPermissionTo('view_all_requests');
 
-        if ($isTech) {
+        if (!$seeAll) {
             $techId = $user->id;
             $base   = CustomizationRequest::where(function ($q) use ($techId) {
                 $q->where('assigned_tech_id1', $techId)->orWhere('assigned_tech_id2', $techId);
@@ -51,6 +51,6 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        return view('admin.dashboard', compact('stats', 'recentRequests', 'isTech'));
+        return view('admin.dashboard', compact('stats', 'recentRequests', 'seeAll'));
     }
 }

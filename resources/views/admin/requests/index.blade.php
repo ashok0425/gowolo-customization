@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title', $isTech ? 'My Assignments' : 'All Requests')
+@section('title', !$seeAll ? 'My Assignments' : 'All Requests')
 
 @section('content')
 <div class="page-header">
-    <h4 class="page-title">{{ $isTech ? 'My Assignments' : 'All Requests' }}</h4>
+    <h4 class="page-title">{{ !$seeAll ? 'My Assignments' : 'All Requests' }}</h4>
     <ul class="breadcrumbs">
         <li class="nav-home"><a href="{{ route('admin.dashboard') }}"><i class="flaticon-home"></i></a></li>
         <li class="separator"><i class="flaticon-right-arrow"></i></li>
@@ -30,7 +30,7 @@
                                 <option value="5" {{ request('status') == '5' ? 'selected' : '' }}>Completed</option>
                             </select>
                         </div>
-                        @if(!$isTech)
+                        @if($seeAll)
                         <div class="col-sm-2">
                             <label>Type</label>
                             <select name="pay_type" class="form-control select2">
@@ -48,13 +48,12 @@
                             </select>
                         </div>
                         @endif
-                        <div class="col-sm-2">
-                            <label>From</label>
-                            <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
-                        </div>
-                        <div class="col-sm-2">
-                            <label>To</label>
-                            <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+                        <div class="col-sm-3">
+                            <label>Date Range</label>
+                            <input type="text" name="date_range" class="form-control date-range"
+                                   placeholder="Select date range"
+                                   value="{{ request('date_from') && request('date_to') ? request('date_from') . ' - ' . request('date_to') : '' }}"
+                                   autocomplete="off">
                         </div>
                         <div class="col-sm-2">
                             <label>Search</label>
@@ -79,7 +78,7 @@
                                 <th>Customer</th>
                                 <th>Company</th>
                                 <th>Status</th>
-                                @if(!$isTech)
+                                @if($seeAll)
                                 <th>Type</th>
                                 <th>Payment</th>
                                 @endif
@@ -98,7 +97,7 @@
                                 <td>
                                     <span class="badge {{ $req->status_badge }}">{{ $req->status_label }}</span>
                                 </td>
-                                @if(!$isTech)
+                                @if($seeAll)
                                 <td>
                                     @if($req->pay_type == 1)
                                         <span class="badge badge-secondary">Free</span>
@@ -126,7 +125,7 @@
                                     <a href="{{ route('admin.requests.chat', $req) }}" class="btn btn-sm btn-info" title="Chat">
                                         <i class="fas fa-comment"></i>
                                     </a>
-                                    @if(!$isTech)
+                                    @if($seeAll)
                                     <a href="{{ route('admin.requests.logs', $req) }}" class="btn btn-sm btn-secondary" title="Logs">
                                         <i class="fas fa-history"></i>
                                     </a>
@@ -135,7 +134,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="{{ $isTech ? 8 : 10 }}" class="text-center text-muted py-4">
+                                <td colspan="{{ !$seeAll ? 8 : 10 }}" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fa-2x d-block mb-2"></i>
                                     No requests found.
                                 </td>

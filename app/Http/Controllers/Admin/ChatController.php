@@ -16,9 +16,9 @@ class ChatController extends Controller
     public function show(CustomizationRequest $customizationRequest)
     {
         $user   = Auth::guard('portal')->user();
-        $isTech = $user->hasRole('technician');
+        $seeAll = $user->hasPermissionTo('view_all_requests');
 
-        if ($isTech) {
+        if (!$seeAll) {
             abort_unless(
                 $customizationRequest->assigned_tech_id1 == $user->id ||
                 $customizationRequest->assigned_tech_id2 == $user->id,
@@ -40,15 +40,17 @@ class ChatController extends Controller
     public function store(Request $request, CustomizationRequest $customizationRequest)
     {
         $user   = Auth::guard('portal')->user();
-        $isTech = $user->hasRole('technician');
+        $seeAll = $user->hasPermissionTo('view_all_requests');
 
-        if ($isTech) {
+        if (!$seeAll) {
             abort_unless(
                 $customizationRequest->assigned_tech_id1 == $user->id ||
                 $customizationRequest->assigned_tech_id2 == $user->id,
                 403
             );
         }
+
+        abort_unless($user->hasPermissionTo('send_chat'), 403);
 
         $request->validate([
             'message' => 'required_without:file|nullable|string',

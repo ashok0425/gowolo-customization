@@ -115,4 +115,13 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Customization Portal — notification recipient
+    |--------------------------------------------------------------------------
+    | Address that receives "new request" and "status changed" notifications.
+    | Configure via NOTIFICATION_EMAIL in .env.
+    */
+    'notification_email' => env('NOTIFICATION_EMAIL'),
+
 ];

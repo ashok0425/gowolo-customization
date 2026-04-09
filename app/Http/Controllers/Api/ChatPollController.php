@@ -36,7 +36,7 @@ class ChatPollController extends Controller
             }
             // Technicians can only poll their assigned requests
             $portalUser = Auth::guard('portal')->user();
-            if ($portalUser->hasRole('technician')) {
+            if (!$portalUser->hasPermissionTo('view_all_requests')) {
                 if ($custRequest->assigned_tech_id1 !== $portalUser->id && $custRequest->assigned_tech_id2 !== $portalUser->id) {
                     return response()->json(['error' => 'Unauthorized'], 403);
                 }

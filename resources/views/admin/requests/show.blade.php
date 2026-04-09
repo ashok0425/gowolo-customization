@@ -117,7 +117,7 @@
         @endif
 
         {{-- Status Update (for techs and admins) --}}
-        @if(!$isTech || $customizationRequest->status == 1)
+        @if($seeAll || $customizationRequest->status == 1)
         <div class="card">
             <div class="card-header"><h4 class="card-title">Update Status</h4></div>
             <div class="card-body">
@@ -127,7 +127,7 @@
                             <div class="form-group">
                                 <label>Status</label>
                                 <select name="status" id="statusSelect" class="form-control">
-                                    @if($isTech)
+                                    @if(!$seeAll)
                                         <option value="2" {{ $customizationRequest->status == 2 ? 'selected' : '' }}>In Review</option>
                                         <option value="3" {{ $customizationRequest->status == 3 ? 'selected' : '' }}>Sent for Review</option>
                                     @else
@@ -141,7 +141,7 @@
                                 </select>
                             </div>
                         </div>
-                        @if(!$isTech)
+                        @if($seeAll)
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label>Pay Type</label>
@@ -211,7 +211,7 @@
         </div>
 
         {{-- Assign form — admin/supervisor only --}}
-        @if(!$isTech)
+        @if($seeAll)
         <div class="card">
             <div class="card-header"><h4 class="card-title">Assign Technician</h4></div>
             <div class="card-body">
@@ -263,7 +263,7 @@
                 <a href="{{ route('admin.requests.chat', $customizationRequest) }}" class="btn btn-info btn-block mb-2">
                     <i class="fas fa-comment mr-1"></i> Open Chat
                 </a>
-                @if(!$isTech)
+                @if($seeAll)
                 <a href="{{ route('admin.requests.logs', $customizationRequest) }}" class="btn btn-secondary btn-block mb-2">
                     <i class="fas fa-history mr-1"></i> View Logs
                 </a>
