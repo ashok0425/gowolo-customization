@@ -59,9 +59,12 @@ class RequestController extends Controller
         }
 
         $requests    = $query->paginate(20)->withQueryString();
-        $technicians = $seeAll ? PortalUser::where('is_active', true)->get() : collect();
+        $canAssign   = $user->hasPermissionTo('assign_technician');
+        $technicians = $canAssign ? PortalUser::where('is_active', true)->get() : collect();
+        $supervisors = $canAssign ? PortalUser::where('is_active', true)->get() : collect();
+        $statuses    = CustomizationRequest::statuses();
 
-        return view('admin.requests.index', compact('requests', 'technicians', 'seeAll'));
+        return view('admin.requests.index', compact('requests', 'technicians', 'supervisors', 'seeAll', 'canAssign', 'statuses'));
     }
 
     public function show(CustomizationRequest $customizationRequest)

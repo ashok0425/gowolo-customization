@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\CustomizationChat;
 use App\Models\CustomizationRequest;
+use App\Models\PortalNotification;
 use App\Services\BunnyStorageService;
 use Illuminate\Http\Request;
 
@@ -16,7 +17,7 @@ class ChatController extends Controller
     {
         $this->authorizeSso($customizationRequest);
 
-        $chats  = $customizationRequest->chats()->get();
+        $chats  = $customizationRequest->chats()->with('replyTo')->get();
         $lastId = $chats->last()?->id ?? 0;
 
         CustomizationChat::where('request_id', $customizationRequest->id)
@@ -34,8 +35,9 @@ class ChatController extends Controller
         $this->authorizeSso($customizationRequest);
 
         $request->validate([
-            'message' => 'required_without:file|nullable|string',
-            'file'    => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf,doc,docx|max:10240',
+            'message'     => 'required_without:file|nullable|string',
+            'file'        => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf,doc,docx|max:10240',
+            'reply_to_id' => 'nullable|integer|exists:customization_chats,id',
         ]);
 
         $ssoUser = session('auth_user');
@@ -46,6 +48,7 @@ class ChatController extends Controller
             'sender_id'    => $ssoUser['user_id'],
             'sender_name'  => $ssoUser['name'] ?? $ssoUser['email'],
             'message'      => $request->message,
+            'reply_to_id'  => $request->reply_to_id,
             'read_by_user' => true,
         ]);
 
@@ -70,6 +73,14 @@ class ChatController extends Controller
         }
 
         $chat->save();
+
+        // Notify staff about the new message from user
+        PortalNotification::notifyNewChat(
+            $customizationRequest,
+            $ssoUser['name'] ?? $ssoUser['email'],
+            'staff',
+            null  // broadcast to all staff
+        );
 
         return response()->json(['success' => true]);
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CustomizationChat;
 use App\Models\CustomizationRequest;
+use App\Models\PortalNotification;
 use App\Services\BunnyStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +27,7 @@ class ChatController extends Controller
             );
         }
 
-        $chats  = $customizationRequest->chats()->get();
+        $chats  = $customizationRequest->chats()->with('replyTo')->get();
         $lastId = $chats->last()?->id ?? 0;
 
         CustomizationChat::where('request_id', $customizationRequest->id)
@@ -53,8 +54,9 @@ class ChatController extends Controller
         abort_unless($user->hasPermissionTo('send_chat'), 403);
 
         $request->validate([
-            'message' => 'required_without:file|nullable|string',
-            'file'    => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf,doc,docx,mp4|max:20480',
+            'message'     => 'required_without:file|nullable|string',
+            'file'        => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf,doc,docx,mp4|max:20480',
+            'reply_to_id' => 'nullable|integer|exists:customization_chats,id',
         ]);
 
         $chat = new CustomizationChat([
@@ -63,6 +65,7 @@ class ChatController extends Controller
             'sender_id'     => $user->id,
             'sender_name'   => $user->full_name,
             'message'       => $request->message,
+            'reply_to_id'   => $request->reply_to_id,
             'read_by_staff' => true,
         ]);
 
@@ -94,6 +97,14 @@ class ChatController extends Controller
             ->performedOn($customizationRequest)
             ->log('chat_sent');
 
+        // Notify the user (customer) about the new message from staff
+        PortalNotification::notifyNewChat(
+            $customizationRequest,
+            $user->full_name,
+            'user',
+            $customizationRequest->user_id
+        );
+
         return response()->json(['success' => true, 'chat' => $this->formatChat($chat)]);
     }
 
@@ -107,11 +118,15 @@ class ChatController extends Controller
 
     private function formatChat(CustomizationChat $chat): array
     {
+        $chat->loadMissing('replyTo');
         return [
             'id'                => $chat->id,
             'sender_type'       => $chat->sender_type,
             'sender_name'       => $chat->sender_name,
             'message'           => $chat->message,
+            'reply_to_id'       => $chat->reply_to_id,
+            'reply_sender'      => $chat->replyTo?->sender_name,
+            'reply_text'        => $chat->replyTo ? \Str::limit(strip_tags($chat->replyTo->message), 40) : null,
             'file_type'         => $chat->file_type,
             'file_url'          => $chat->bunny_path
                 ? app(BunnyStorageService::class)->signedUrl($chat->bunny_path)

@@ -107,6 +107,10 @@
             </button>
         </form>
 
+        <a href="{{ route('user.login') }}" style="display:block;text-align:center;margin-top:18px;font-size:0.8rem;color:#777;text-decoration:none;">
+            <i class="fas fa-user mr-1"></i> Member login
+        </a>
+
         <div class="text-center mt-3" style="font-size:0.8rem; color:#888;">
             Powered by <strong>GoWolo</strong>
         </div>

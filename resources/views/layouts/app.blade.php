@@ -133,6 +133,23 @@
         .navbar-header i, .navbar-header .fa, .navbar-header .fas, .navbar-header .far, .navbar-header .fab {
             color: #ffffff !important;
         }
+        /* Override Atlantis blue (#1572E8) on active sidebar items.
+           Match its full selector specificity so this wins. */
+        .sidebar .nav.nav-primary > .nav-item.active a i,
+        .sidebar[data-background-color="white"] .nav.nav-primary > .nav-item.active a i,
+        .sidebar .nav.nav-primary > .nav-item a:hover i,
+        .sidebar .nav.nav-primary > .nav-item a:focus i,
+        .sidebar .nav.nav-primary > .nav-item a[data-toggle=collapse][aria-expanded=true] i,
+        .sidebar .nav.nav-primary > .nav-item.active a:before,
+        .sidebar .nav.nav-primary > .nav-item.active > a p,
+        .sidebar .nav.nav-primary .nav-collapse li.active a,
+        .sidebar .nav.nav-primary .nav-collapse li.active a i,
+        .sidebar .nav.nav-primary .nav-collapse li.active a p,
+        .sidebar .nav.nav-primary .nav-collapse li a:hover,
+        .sidebar .nav.nav-primary .nav-collapse li a:hover i,
+        .sidebar .nav.nav-primary .nav-collapse li a:hover p {
+            color: #ffffff !important;
+        }
         /* Hover on parent */
         .sidebar-content .nav-item1 > a:hover {
             background-color: rgba(255,255,255,0.12) !important;
@@ -252,6 +269,80 @@
 
         .nav-section h4.text-section { color: rgba(255,255,255,0.7); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 12px 18px 4px; margin: 0; }
 
+        /* Notification / message badge */
+        .notif-count, .msg-count {
+            position: absolute; top: 8px; right: 4px;
+            background: #e74c3c; color: #fff; font-size: 10px;
+            width: 18px; height: 18px; border-radius: 50%;
+            text-align: center; line-height: 18px; font-weight: 700;
+        }
+
+        /* Right offcanvas panel */
+        .offcanvas-right {
+            position: fixed; top: 0; right: -400px; width: 380px;
+            height: 100vh; background: #fff; z-index: 99999;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.12);
+            transition: right 0.3s ease;
+            display: flex; flex-direction: column;
+        }
+        .offcanvas-right.open { right: 0; }
+        .offcanvas-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.35); z-index: 99998;
+            display: none;
+        }
+        .offcanvas-backdrop.show { display: block; }
+        .offcanvas-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 20px; border-bottom: 1px solid #f0f0f3;
+            background: #fafbfc; flex-shrink: 0;
+        }
+        .offcanvas-header h5 { margin: 0; font-size: 15px; font-weight: 700; color: #333; }
+        .offcanvas-header .close-panel {
+            background: none; border: none; font-size: 22px; color: #999;
+            cursor: pointer; padding: 0; line-height: 1;
+        }
+        .offcanvas-header .close-panel:hover { color: #333; }
+        .offcanvas-header .clear-link {
+            font-size: 12px; color: #662c87; text-decoration: none; font-weight: 600;
+        }
+        .offcanvas-header .clear-link:hover { text-decoration: underline; }
+        .offcanvas-body { flex: 1; overflow-y: auto; }
+        /* Notification card */
+        .notif-card {
+            display: flex; gap: 12px; padding: 14px 16px;
+            border-bottom: 1px solid #f1f1f4; transition: background 0.15s;
+            cursor: default;
+        }
+        .notif-card:hover { background: #f9f3fc; }
+        .notif-icon {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #f3e8fb; color: #662c87;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
+        }
+        .notif-icon.chat { background: #e8f5e9; color: #27ae60; }
+        .notif-body { flex: 1; min-width: 0; }
+        .notif-header { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+        .notif-source { font-size: 11px; color: #662c87; font-weight: 600; }
+        .notif-time { font-size: 11px; color: #aaa; }
+        .notif-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 2px; }
+        .notif-text { font-size: 12px; color: #666; line-height: 1.4; margin-bottom: 6px; }
+        .notif-actions { display: flex; gap: 16px; }
+        .notif-actions a, .notif-actions button {
+            font-size: 12px; font-weight: 600; background: none; border: none;
+            cursor: pointer; padding: 0;
+        }
+        .notif-dismiss { color: #999; }
+        .notif-dismiss:hover { color: #333; }
+        .notif-action { color: #662c87; text-decoration: none; }
+        .notif-action:hover { text-decoration: underline; }
+        .notif-close {
+            background: none; border: none; color: #ccc; font-size: 16px;
+            cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0;
+        }
+        .notif-close:hover { color: #333; }
+
         /* Permission selector cards (user create / edit) */
         .perm-card {
             display: flex;
@@ -327,7 +418,7 @@
     <div class="main-header">
         <div class="logo-header text-center" data-background-color="blue">
             <a href="{{ Auth::guard('portal')->check() ? route('admin.dashboard') : url('/') }}" class="logo text-center">
-                <b>GoWolo</b>
+                <img src="{{ asset('common/img/goWOLO_Logo_White.png') }}" alt="GoWolo" style="max-height:35px;">
             </a>
             <button class="navbar-toggler sidenav-toggler ml-auto" type="button" data-toggle="collapse"
                     data-target="collapse" aria-expanded="false" aria-label="Toggle navigation">
@@ -342,6 +433,38 @@
         <nav class="navbar navbar-header navbar-expand-lg" data-background-color="">
             <div class="container-fluid">
                 <ul class="navbar-nav topbar-nav ml-md-auto align-items-center">
+
+                    {{-- Messages Icon (dropdown) --}}
+                    <li class="nav-item dropdown hidden-caret" id="msgDropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="position:relative;">
+                            <i class="fas fa-comment-dots"></i>
+                            <span class="notification msg-count" style="display:none;">0</span>
+                        </a>
+                        <ul class="dropdown-menu notif-box animated fadeIn" aria-labelledby="msgDropdown" style="width:420px;max-height:500px;overflow-y:auto;right:0;left:auto;">
+                            <li>
+                                <div class="dropdown-title d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-comment-dots mr-1" style="color:#662c87;"></i> Messages</span>
+                                    <a href="#" onclick="clearType('new_chat');return false;" style="font-size:11px;color:#662c87;">Clear All</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div id="msgList">
+                                    <div class="text-center text-muted py-3" style="font-size:13px;">
+                                        <i class="fas fa-comment-slash d-block mb-1" style="font-size:20px;color:#ddd;"></i>
+                                        No new messages
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+
+                    {{-- Notification Bell (offcanvas) --}}
+                    <li class="nav-item hidden-caret">
+                        <a class="nav-link" href="#" onclick="togglePanel('notifPanel');return false;" style="position:relative;">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification notif-count" style="display:none;">0</span>
+                        </a>
+                    </li>
 
                     @auth('portal')
                     @php $portalUserNav = Auth::guard('portal')->user(); @endphp
@@ -448,6 +571,26 @@
 
 </div>
 
+{{-- Offcanvas backdrop --}}
+<div class="offcanvas-backdrop" id="offcanvasBackdrop" onclick="closeAllPanels()"></div>
+
+{{-- Notifications offcanvas --}}
+<div class="offcanvas-right" id="notifPanel">
+    <div class="offcanvas-header">
+        <h5><i class="fas fa-bell mr-2" style="color:#662c87;"></i> Notifications</h5>
+        <div>
+            <a href="#" class="clear-link" onclick="clearType('new_request');return false;">Clear All</a>
+            <button class="close-panel ml-3" onclick="closeAllPanels()">&times;</button>
+        </div>
+    </div>
+    <div class="offcanvas-body" id="notifList">
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-bell-slash d-block mb-2" style="font-size:32px;color:#ddd;"></i>
+            No new notifications
+        </div>
+    </div>
+</div>
+
 {{-- Core JS — js/app.js is the compiled Mix bundle with jQuery + Bootstrap + Popper --}}
 <script src="{{ asset('js/app.js') }}"></script>
 <script src="{{ asset('admin/assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js') }}"></script>
@@ -512,5 +655,146 @@
 </script>
 
 @stack('js')
+
+<script>
+// Offcanvas panel toggle + notification polling
+(function() {
+    var POLL_INTERVAL = 10000;
+    var TOKEN = $('meta[name="csrf-token"]').attr('content');
+
+    // Panel toggle
+    window.togglePanel = function(id) {
+        var $panel = $('#' + id);
+        var $backdrop = $('#offcanvasBackdrop');
+        if ($panel.hasClass('open')) {
+            $panel.removeClass('open');
+            $backdrop.removeClass('show');
+        } else {
+            $('.offcanvas-right').removeClass('open');
+            $panel.addClass('open');
+            $backdrop.addClass('show');
+        }
+    };
+    window.closeAllPanels = function() {
+        $('.offcanvas-right').removeClass('open');
+        $('#offcanvasBackdrop').removeClass('show');
+    };
+
+    // Build a notification card
+    function buildCard(n) {
+        var isChat = (n.type === 'new_chat');
+        var iconClass = isChat ? 'notif-icon chat' : 'notif-icon';
+        var faIcon    = isChat ? 'fas fa-comment' : 'fas fa-bell';
+        var emoji     = isChat
+            ? '<i class="fas fa-envelope" style="color:#662c87;"></i> '
+            : '<i class="fas fa-exclamation-triangle" style="color:#e67e22;"></i> ';
+
+        return '<div class="notif-card" data-id="' + n.id + '" style="position:relative;">'
+            + '<div class="' + iconClass + '"><i class="' + faIcon + '"></i></div>'
+            + '<div class="notif-body">'
+            +   '<div class="notif-header">'
+            +     '<span class="notif-source">Customization</span>'
+            +     '<span class="notif-time">&bull; ' + n.time_ago + '</span>'
+            +   '</div>'
+            +   '<div class="notif-title">' + emoji + n.title + '</div>'
+            +   '<div class="notif-text">' + n.body + '</div>'
+            +   '<div class="notif-actions">'
+            +     '<button class="notif-dismiss" onclick="dismissNotif(' + n.id + ')">Dismiss</button>'
+            +     (n.action_url ? '<a class="notif-action" href="' + n.action_url + '"><strong>' + n.action_label + '</strong></a>' : '')
+            +   '</div>'
+            + '</div>'
+            + '<button class="notif-close" onclick="dismissNotif(' + n.id + ')">&times;</button>'
+            + '</div>';
+    }
+
+    function emptyState(icon, text) {
+        return '<div class="text-center text-muted py-5"><i class="' + icon + ' d-block mb-2" style="font-size:32px;color:#ddd;"></i>' + text + '</div>';
+    }
+
+    // Split notifications into messages vs requests and render
+    function renderSplit(data) {
+        var msgs = [], notifs = [];
+        $.each(data.notifications, function(i, n) {
+            if (n.type === 'new_chat') msgs.push(n);
+            else notifs.push(n);
+        });
+
+        // Messages panel — latest 4
+        var $msgList = $('#msgList'), $msgCount = $('.msg-count');
+        if (msgs.length) {
+            $msgCount.text(msgs.length).show();
+            var html = '';
+            $.each(msgs.slice(0, 5), function(i, n) { html += buildCard(n); });
+            $msgList.html(html);
+        } else {
+            $msgCount.hide();
+            $msgList.html(emptyState('fas fa-comment-slash', 'No new messages'));
+        }
+
+        // Notifications panel — all requests
+        var $notifList = $('#notifList'), $notifCount = $('.notif-count');
+        if (notifs.length) {
+            $notifCount.text(notifs.length).show();
+            var html2 = '';
+            $.each(notifs, function(i, n) { html2 += buildCard(n); });
+            $notifList.html(html2);
+        } else {
+            $notifCount.hide();
+            $notifList.html(emptyState('fas fa-bell-slash', 'No new notifications'));
+        }
+    }
+
+    function fetchNotifications() {
+        $.getJSON('{{ route("api.notifications") }}', function(data) {
+            renderSplit(data);
+        });
+    }
+
+    // Dismiss single notification
+    window.dismissNotif = function(id) {
+        var $card = $('.notif-card[data-id="' + id + '"]');
+        var $body = $card.closest('.offcanvas-body');
+        $.post('/api/notifications/' + id + '/dismiss', { _token: TOKEN }, function() {
+            $card.fadeOut(200, function() {
+                $(this).remove();
+                var remaining = $body.find('.notif-card').length;
+                var isMsg = ($body.attr('id') === 'msgList');
+                var $badge = isMsg ? $('.msg-count') : $('.notif-count');
+                if (remaining) {
+                    $badge.text(remaining).show();
+                } else {
+                    $badge.hide();
+                    $body.html(emptyState(
+                        isMsg ? 'fas fa-comment-slash' : 'fas fa-bell-slash',
+                        isMsg ? 'No new messages' : 'No new notifications'
+                    ));
+                }
+            });
+        });
+    };
+
+    // Clear all per type
+    window.clearType = function(type) {
+        var isMsg = (type === 'new_chat');
+        var $body = isMsg ? $('#msgList') : $('#notifList');
+        var ids = [];
+        $body.find('.notif-card').each(function() { ids.push($(this).data('id')); });
+        if (!ids.length) return;
+        $.each(ids, function(i, id) {
+            $.post('/api/notifications/' + id + '/dismiss', { _token: TOKEN });
+        });
+        var $badge = isMsg ? $('.msg-count') : $('.notif-count');
+        $badge.hide();
+        $body.html(emptyState(
+            isMsg ? 'fas fa-comment-slash' : 'fas fa-bell-slash',
+            isMsg ? 'No new messages' : 'No new notifications'
+        ));
+    };
+
+    // Initial fetch + poll
+    fetchNotifications();
+    setInterval(fetchNotifications, POLL_INTERVAL);
+})();
+</script>
 </body>
 </html>

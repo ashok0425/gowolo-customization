@@ -51,6 +51,6 @@ class SSOController extends Controller
     public function logout()
     {
         session()->forget('auth_user');
-        return redirect()->route('portal.login')->with('success', 'Logged out.');
+        return redirect()->route('user.login')->with('success', 'Logged out.');
     }
 }

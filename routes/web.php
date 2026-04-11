@@ -3,17 +3,23 @@
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\PortalLoginController;
 use App\Http\Controllers\Auth\SSOController;
+use App\Http\Controllers\Auth\UserLoginController;
 use App\Http\Controllers\User;
 use App\Http\Controllers\Api\ChatPollController;
 use Illuminate\Support\Facades\Route;
 
 // Public root
-Route::get('/', fn() => redirect()->route('portal.login'));
+Route::get('/', fn() => redirect()->route('user.login'));
 
-// Auth
-Route::get('/login',  [PortalLoginController::class, 'showLogin'])->name('portal.login');
-Route::post('/login', [PortalLoginController::class, 'login'])->name('portal.login.post');
-Route::post('/logout', [PortalLoginController::class, 'logout'])->name('portal.logout');
+// Direct user login (authenticates against dashboard_db.users)
+Route::get('/login',  [UserLoginController::class, 'showLogin'])->name('user.login');
+Route::post('/login', [UserLoginController::class, 'login'])->name('user.login.post');
+Route::post('/logout', [UserLoginController::class, 'logout'])->name('user.logout');
+
+// Portal staff login
+Route::get('/portal/login',  [PortalLoginController::class, 'showLogin'])->name('portal.login');
+Route::post('/portal/login', [PortalLoginController::class, 'login'])->name('portal.login.post');
+Route::post('/portal/logout', [PortalLoginController::class, 'logout'])->name('portal.logout');
 
 // SSO — called by dashboardv2 redirect
 Route::get('/auth/sso', [SSOController::class, 'handle'])->name('sso.handle');
@@ -64,3 +70,8 @@ Route::middleware('sso.auth')->prefix('request')->name('user.')->group(function 
 
 // Chat polling API
 Route::get('/api/chat/{requestId}/poll', [ChatPollController::class, 'poll'])->name('api.chat.poll');
+
+// Notification API
+Route::get('/api/notifications',              [App\Http\Controllers\Api\NotificationController::class, 'index'])->name('api.notifications');
+Route::post('/api/notifications/{notification}/dismiss', [App\Http\Controllers\Api\NotificationController::class, 'dismiss'])->name('api.notifications.dismiss');
+Route::post('/api/notifications/clear',       [App\Http\Controllers\Api\NotificationController::class, 'clearAll'])->name('api.notifications.clear');

@@ -7,6 +7,7 @@ use App\Models\CustomizationAnswer;
 use App\Models\CustomizationFile;
 use App\Models\CustomizationRequest;
 use App\Mail\RequestNotificationMail;
+use App\Models\PortalNotification;
 use App\Services\BunnyStorageService;
 use App\Services\SiteInfoService;
 use Illuminate\Http\Request;
@@ -67,16 +68,14 @@ class RequestController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'first_name'      => 'required|string|max:100',
-            'last_name'       => 'required|string|max:100',
-            'email'           => 'required|email',
-            'phone'           => 'required|string|max:20',
-            'company_name'    => 'required|string|max:200',
-            'company_phone'   => 'required|string|max:20',
-            'company_address' => 'required|string',
-            'question_1'      => 'required',
-            'question_2'      => 'required',
-            'question_3'      => 'required',
+            'first_name'        => 'required|string|max:100',
+            'last_name'         => 'required|string|max:100',
+            'email'             => 'required|email',
+            'phone'             => 'required|string|max:20',
+            'company_name'      => 'required|string|max:200',
+            'company_phone'     => 'required|string|max:200',
+            'company_address'   => 'nullable|string',
+            'req_primary_color' => 'required|string|max:20',
         ]);
 
         $ssoUser   = session('auth_user');
@@ -138,6 +137,9 @@ class RequestController extends Controller
             ->withProperties(['user_id' => $ssoUser['user_id']])
             ->log('request_created');
 
+        // In-app notification for staff
+        PortalNotification::notifyNewRequest($custRequest);
+
         // Notify configured email about the new request
         $notifyEmail = config('mail.notification_email');
         if ($notifyEmail) {
@@ -148,12 +150,8 @@ class RequestController extends Controller
             }
         }
 
-        return response()->json([
-            'success'    => true,
-            'message'    => 'Request submitted successfully.',
-            'request_id' => $custRequest->id,
-            'ref_number' => $custRequest->ref_number,
-        ]);
+        return redirect()->route('user.dashboard')
+            ->with('success', 'Request submitted successfully! Reference: ' . $custRequest->ref_number);
     }
 
     public function show(CustomizationRequest $customizationRequest)
