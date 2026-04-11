@@ -719,12 +719,13 @@
             else notifs.push(n);
         });
 
-        // Messages panel — latest 4
+        // Messages panel — latest 5 only
         var $msgList = $('#msgList'), $msgCount = $('.msg-count');
-        if (msgs.length) {
-            $msgCount.text(msgs.length).show();
+        var showMsgs = msgs.slice(0, 5);
+        if (showMsgs.length) {
+            $msgCount.text(showMsgs.length).show();
             var html = '';
-            $.each(msgs.slice(0, 5), function(i, n) { html += buildCard(n); });
+            $.each(showMsgs, function(i, n) { html += buildCard(n); });
             $msgList.html(html);
         } else {
             $msgCount.hide();
