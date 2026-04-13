@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\SSOController;
 use App\Http\Controllers\Auth\UserLoginController;
 use App\Http\Controllers\User;
 use App\Http\Controllers\Api\ChatPollController;
+use App\Http\Controllers\Api\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Public root
@@ -46,6 +47,10 @@ Route::middleware('portal.auth')->prefix('admin')->name('admin.')->group(functio
     Route::get('/requests/{customizationRequest}/chat',  [Admin\ChatController::class, 'show'])->name('requests.chat');
     Route::post('/requests/{customizationRequest}/chat', [Admin\ChatController::class, 'store'])->name('requests.chat.store');
 
+    // Bug reports
+    Route::get('/bug-reports',              [Admin\BugReportController::class, 'index'])->name('bug-reports.index');
+    Route::get('/bug-reports/{bugReport}',  [Admin\BugReportController::class, 'show'])->name('bug-reports.show');
+
     // User management — requires manage_portal_users permission
     Route::middleware('permission:manage_portal_users')->group(function () {
         Route::get('/users',                    [Admin\UserManagementController::class, 'index'])->name('users.index');
@@ -63,6 +68,12 @@ Route::middleware('sso.auth')->prefix('request')->name('user.')->group(function 
     Route::get('/dashboard',                     [User\RequestController::class, 'dashboard'])->name('dashboard');
     Route::get('/create',                        [User\RequestController::class, 'create'])->name('request.create');
     Route::post('/store',                        [User\RequestController::class, 'store'])->name('request.store');
+
+    // Bug reports — must be above the {customizationRequest} wildcard
+    Route::get('/bug-reports',      [User\BugReportController::class, 'index'])->name('bug-report.index');
+    Route::get('/bug-report',       [User\BugReportController::class, 'create'])->name('bug-report.create');
+    Route::post('/bug-report',      [User\BugReportController::class, 'store'])->name('bug-report.store');
+
     Route::get('/{customizationRequest}',        [User\RequestController::class, 'show'])->name('request.show');
     Route::get('/{customizationRequest}/chat',   [User\ChatController::class, 'show'])->name('chat.show');
     Route::post('/{customizationRequest}/chat',  [User\ChatController::class, 'store'])->name('chat.store');

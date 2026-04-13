@@ -65,6 +65,17 @@
         </div>
     </li>
 
+    <li class="nav-item nav-item1 {{ request()->routeIs('admin.bug-reports.*') ? 'active' : '' }}">
+        <a href="{{ route('admin.bug-reports.index') }}" class="link1">
+            <i class="fas fa-bug"></i>
+            <p>Bug Reports</p>
+            @php $unreadBugs = \App\Models\BugReport::where('is_read', false)->count(); @endphp
+            @if($unreadBugs > 0)
+                <span class="badge badge-warning ml-auto">{{ $unreadBugs }}</span>
+            @endif
+        </a>
+    </li>
+
     @if($portalUser->hasPermissionTo('manage_portal_users'))
     <li class="nav-section">
         <h4 class="text-section">Administration</h4>
@@ -109,6 +120,12 @@
 @endauth
 
 @if(session()->has('auth_user'))
+    <li class="nav-item nav-item1">
+        <a href="https://dashboard.gowologlobal.com/{{ base64_encode(session('auth_user.email')) }}" class="link1">
+            <i class="fas fa-tachometer-alt"></i>
+            <p>Dashboard</p>
+        </a>
+    </li>
     <li class="nav-item nav-item1 {{ request()->routeIs('user.dashboard') ? 'active' : '' }}">
         <a href="{{ route('user.dashboard') }}" class="link1">
             <i class="fas fa-home"></i>
@@ -119,6 +136,12 @@
         <a href="{{ route('user.request.create') }}" class="link1">
             <i class="fas fa-plus-circle"></i>
             <p>New Request</p>
+        </a>
+    </li>
+    <li class="nav-item nav-item1 {{ request()->routeIs('user.bug-report.*') ? 'active' : '' }}">
+        <a href="{{ route('user.bug-report.index') }}" class="link1">
+            <i class="fas fa-bug"></i>
+            <p>Bug Reports</p>
         </a>
     </li>
     <li class="nav-item nav-item1">
