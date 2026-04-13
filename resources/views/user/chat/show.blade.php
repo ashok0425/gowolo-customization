@@ -14,7 +14,7 @@
 </div>
 
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
                 <div class="d-flex align-items-center">
@@ -31,7 +31,9 @@
                 'pollUrl'              => route('api.chat.poll', ['requestId' => $customizationRequest->id]),
                 'viewerType'           => 'user',
                 'viewerName'           => session('auth_user.name', 'You'),
-                'myInitial'            => strtoupper(substr(session('auth_user.name', 'U'), 0, 1)),
+                'viewerAvatar'         => session('auth_user.profile_pic')
+                    ? rtrim(config('services.dashboardv2.base_url', 'https://dashboard.gowologlobal.com'), '/') . '/' . ltrim(session('auth_user.profile_pic'), '/')
+                    : 'https://ui-avatars.com/api/?name=' . urlencode(session('auth_user.name', 'User')) . '&background=1C2B36&color=fff&size=64&rounded=true',
             ])
         </div>
     </div>

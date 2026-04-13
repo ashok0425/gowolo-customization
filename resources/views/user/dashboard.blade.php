@@ -55,30 +55,48 @@
                                     <span class="badge {{ $req->status_badge }}">{{ $req->status_label }}</span>
                                 </td>
                                 <td>
-                                    @php $makePaymentUrl = config('services.dashboardv2.make_payment_url'); @endphp
+                                    @php
+                                        // Pay Now URL pattern used by dashboardv2's netwostore:
+                                        // https://netwostore.gowologlobal.com/gowolo-make-payment?uid={base64(email)}&type=custom&id={id}
+                                        $payBase = rtrim(config('services.dashboardv2.make_payment_url'), '/');
+                                        $uid     = base64_encode(session('auth_user.email') ?? $req->email);
+                                        $paymentUrl = $payBase . '?uid=' . $uid . '&type=custom&id=' . $req->id;
+                                    @endphp
                                     @if(isset($req->pay_status) && $req->pay_status == 1)
                                         <span class="text-primary font-weight-bold"><i class="fas fa-check-circle mr-1"></i> Payment Done</span>
-                                    @elseif($req->pay_type == 2 && empty($req->pay_status))
-                                        <a href="{{ $makePaymentUrl }}?type=custom&id={{ $req->id }}"
+                                    @elseif($req->pay_type == 2 && !empty($req->pay_amount) && empty($req->pay_status))
+                                        <a href="{{ $paymentUrl }}" target="_blank"
                                            class="btn btn-sm paynow"
                                            style="background:#662c87;color:#fff;border-radius:50px;padding:4px 14px;font-size:12px;font-weight:600;">
-                                            Pay Now
+                                            <i class="fas fa-credit-card mr-1"></i> Pay Now ${{ number_format($req->pay_amount, 2) }}
                                         </a>
                                     @elseif($req->pay_type == 1)
                                         <span class="badge badge-secondary">Free</span>
                                     @else
-                                        <span class="text-warning">Not Set</span>
+                                        <span class="text-warning">Awaiting Price</span>
                                     @endif
                                 </td>
                                 <td>{{ $req->primaryTechnician?->full_name ?? '—' }}</td>
                                 <td>{{ $req->created_at->format('M d, Y') }}</td>
                                 <td>
-                                    <a href="{{ route('user.request.show', $req) }}" class="btn btn-sm btn-primary" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('user.chat.show', $req) }}" class="btn btn-sm btn-info" title="Chat">
-                                        <i class="fas fa-comment"></i>
-                                    </a>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-right">
+                                            <a class="dropdown-item" href="{{ route('user.request.show', $req) }}">
+                                                <i class="fas fa-eye mr-2 text-primary"></i> View Details
+                                            </a>
+                                            @if(in_array($req->status, [0, 1]))
+                                            <a class="dropdown-item" href="{{ route('user.request.edit', $req) }}">
+                                                <i class="fas fa-edit mr-2 text-warning"></i> Edit Request
+                                            </a>
+                                            @endif
+                                            <a class="dropdown-item" href="{{ route('user.chat.show', $req) }}">
+                                                <i class="fas fa-comment mr-2 text-info"></i> Chat
+                                            </a>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                             @endforeach

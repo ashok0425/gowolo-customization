@@ -37,6 +37,7 @@
                                     'status_changed'      => 'fa-exchange-alt',
                                     'chat_sent'           => 'fa-comment',
                                     'request_created'     => 'fa-plus-circle',
+                                    'request_edited'      => 'fa-edit',
                                     default               => 'fa-info-circle',
                                 };
                             @endphp
@@ -51,15 +52,30 @@
                         @if($log->causer)
                         <small class="text-muted">by {{ $log->causer->full_name ?? $log->causer->name ?? '—' }}</small>
                         @endif
-                        @if($log->properties->get('old') || $log->properties->get('new'))
-                        <div class="mt-1 small">
-                            @if($log->properties->get('old'))
-                            <span class="text-danger">Before: {{ json_encode($log->properties->get('old')) }}</span><br>
-                            @endif
-                            @if($log->properties->get('new'))
-                            <span class="text-success">After: {{ json_encode($log->properties->get('new')) }}</span>
-                            @endif
-                        </div>
+
+                        @php $changes = $log->properties->get('changes'); @endphp
+                        @if($log->description === 'request_edited' && is_array($changes) && count($changes))
+                            <table class="table table-sm mt-2" style="font-size:12px;">
+                                <thead><tr><th>Field</th><th>Old Value</th><th>New Value</th></tr></thead>
+                                <tbody>
+                                @foreach($changes as $field => $diff)
+                                    <tr>
+                                        <td class="font-weight-bold">{{ ucwords(str_replace('_', ' ', $field)) }}</td>
+                                        <td class="text-danger"><del>{{ is_scalar($diff['old']) ? $diff['old'] : json_encode($diff['old']) }}</del></td>
+                                        <td class="text-success">{{ is_scalar($diff['new']) ? $diff['new'] : json_encode($diff['new']) }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        @elseif($log->properties->get('old') || $log->properties->get('new'))
+                            <div class="mt-1 small">
+                                @if($log->properties->get('old'))
+                                <span class="text-danger">Before: {{ json_encode($log->properties->get('old')) }}</span><br>
+                                @endif
+                                @if($log->properties->get('new'))
+                                <span class="text-success">After: {{ json_encode($log->properties->get('new')) }}</span>
+                                @endif
+                            </div>
                         @endif
                     </div>
                 </div>

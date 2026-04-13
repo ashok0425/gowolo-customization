@@ -181,6 +181,112 @@ class RequestController extends Controller
         return view('user.request.show', compact('customizationRequest'));
     }
 
+    /**
+     * Edit form — customer can edit their own request only while it's
+     * still Pending (0) or Assigned (1). Once a technician starts, it's locked.
+     */
+    public function edit(CustomizationRequest $customizationRequest)
+    {
+        $this->authorizeSsoUser($customizationRequest);
+
+        abort_unless(
+            in_array($customizationRequest->status, [CustomizationRequest::STATUS_PENDING, CustomizationRequest::STATUS_ASSIGNED]),
+            403,
+            'This request can no longer be edited because it is already in progress.'
+        );
+
+        $customizationRequest->load('answers');
+        return view('user.request.edit', compact('customizationRequest'));
+    }
+
+    /**
+     * Persist edits, log changes via spatie activitylog.
+     */
+    public function update(Request $request, CustomizationRequest $customizationRequest)
+    {
+        $this->authorizeSsoUser($customizationRequest);
+
+        abort_unless(
+            in_array($customizationRequest->status, [CustomizationRequest::STATUS_PENDING, CustomizationRequest::STATUS_ASSIGNED]),
+            403,
+            'This request can no longer be edited.'
+        );
+
+        $request->validate([
+            'first_name'          => 'required|string|max:100',
+            'last_name'           => 'required|string|max:100',
+            'email'               => 'required|email',
+            'phone'               => 'required|string|max:20',
+            'sec_phone'           => 'nullable|string|max:20',
+            'company_name'        => 'required|string|max:200',
+            'company_phone'       => 'required|string|max:200',
+            'company_address'     => 'nullable|string',
+            'req_primary_color'   => 'nullable|string|max:20',
+            'req_sec_color'       => 'nullable|string|max:20',
+            'request_description' => 'nullable|string',
+        ]);
+
+        $editable = [
+            'first_name', 'last_name', 'email', 'phone', 'sec_phone',
+            'company_name', 'company_phone', 'company_address',
+            'req_primary_color', 'req_sec_color', 'request_description',
+            'req_logo', 'req_icon', 'req_app_background', 'req_landing_page', 'req_others',
+        ];
+
+        $old = collect($editable)->mapWithKeys(fn ($k) => [$k => $customizationRequest->$k])->toArray();
+
+        $data = $request->only(['first_name', 'last_name', 'email', 'phone', 'sec_phone',
+            'company_name', 'company_phone', 'company_address',
+            'req_primary_color', 'req_sec_color', 'request_description']);
+
+        $data['req_logo']           = $request->boolean('req_logo');
+        $data['req_icon']           = $request->boolean('req_icon');
+        $data['req_app_background'] = $request->boolean('req_app_background');
+        $data['req_landing_page']   = $request->boolean('req_landing_page');
+        $data['req_others']         = $request->boolean('req_others');
+
+        $customizationRequest->update($data);
+
+        // Diff only changed fields
+        $changed = [];
+        foreach ($editable as $field) {
+            if ($old[$field] != $customizationRequest->$field) {
+                $changed[$field] = ['old' => $old[$field], 'new' => $customizationRequest->$field];
+            }
+        }
+
+        // Persist questionary answers (upsert)
+        $oldAnswers = CustomizationAnswer::where('request_id', $customizationRequest->id)
+            ->pluck('answer', 'question_key')->toArray();
+
+        foreach (self::QUESTIONS as $key => $text) {
+            $newValue = $request->input($key);
+            if ($newValue === null || $newValue === '') continue;
+            $oldValue = $oldAnswers[$key] ?? null;
+            if ((string) $oldValue !== (string) $newValue) {
+                $changed[$key] = ['old' => $oldValue, 'new' => $newValue];
+            }
+            CustomizationAnswer::updateOrCreate(
+                ['request_id' => $customizationRequest->id, 'question_key' => $key],
+                ['question_text' => $text, 'answer' => $newValue]
+            );
+        }
+
+        if (!empty($changed)) {
+            activity('customization')
+                ->performedOn($customizationRequest)
+                ->withProperties([
+                    'changes' => $changed,
+                    'edited_by' => 'customer',
+                    'user_id' => session('auth_user.user_id'),
+                ])
+                ->log('request_edited');
+        }
+
+        return redirect()->route('user.dashboard')
+            ->with('success', 'Request updated successfully.');
+    }
+
     private function storeFile($file, int $requestId, string $category, int $userId): void
     {
         $extension  = strtolower($file->getClientOriginalExtension());

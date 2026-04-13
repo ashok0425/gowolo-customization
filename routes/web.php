@@ -39,6 +39,8 @@ Route::middleware('portal.auth')->prefix('admin')->name('admin.')->group(functio
     // Requests — fine-grained auth handled in controller
     Route::get('/requests',                                [Admin\RequestController::class, 'index'])->name('requests.index');
     Route::get('/requests/{customizationRequest}',         [Admin\RequestController::class, 'show'])->name('requests.show');
+    Route::get('/requests/{customizationRequest}/edit',    [Admin\RequestController::class, 'edit'])->name('requests.edit');
+    Route::put('/requests/{customizationRequest}',         [Admin\RequestController::class, 'update'])->name('requests.update');
     Route::post('/requests/{customizationRequest}/assign', [Admin\RequestController::class, 'assign'])->name('requests.assign');
     Route::post('/requests/{customizationRequest}/status', [Admin\RequestController::class, 'updateStatus'])->name('requests.status');
     Route::get('/requests/{customizationRequest}/logs',    [Admin\RequestController::class, 'logs'])->name('requests.logs');
@@ -74,6 +76,8 @@ Route::middleware('sso.auth')->prefix('request')->name('user.')->group(function 
     Route::get('/bug-report',       [User\BugReportController::class, 'create'])->name('bug-report.create');
     Route::post('/bug-report',      [User\BugReportController::class, 'store'])->name('bug-report.store');
 
+    Route::get('/{customizationRequest}/edit',   [User\RequestController::class, 'edit'])->name('request.edit');
+    Route::put('/{customizationRequest}',        [User\RequestController::class, 'update'])->name('request.update');
     Route::get('/{customizationRequest}',        [User\RequestController::class, 'show'])->name('request.show');
     Route::get('/{customizationRequest}/chat',   [User\ChatController::class, 'show'])->name('chat.show');
     Route::post('/{customizationRequest}/chat',  [User\ChatController::class, 'store'])->name('chat.store');

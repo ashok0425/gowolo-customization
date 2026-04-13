@@ -19,6 +19,7 @@ class UserManagementController extends Controller
         'view_assigned_requests',
         'assign_technician',
         'update_request_status',
+        'edit_request',
         'manage_portal_users',
         'view_reports',
         'manage_settings',

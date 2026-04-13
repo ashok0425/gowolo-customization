@@ -26,7 +26,7 @@ class ChatPollController extends Controller
 
         // Validate access
         if ($viewer === 'user') {
-            $ssoUser = session('sso_user');
+            $ssoUser = session('auth_user');
             if (!$ssoUser || $custRequest->user_id != $ssoUser['user_id']) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
@@ -76,6 +76,8 @@ class ChatPollController extends Controller
 
     private function format(CustomizationChat $msg, string $viewer): array
     {
+        $msg->loadMissing('replyTo');
+
         $fileUrl = null;
         if ($msg->bunny_path && $this->bunny->isConfigured()) {
             $fileUrl = $this->bunny->signedUrl($msg->bunny_path);
@@ -90,10 +92,13 @@ class ChatPollController extends Controller
             'is_mine'           => ($viewer === 'user' && $msg->sender_type === 'user')
                                 || ($viewer === 'staff' && $msg->sender_type === 'portal_user'),
             'message'           => $msg->message,
+            'reply_to_id'       => $msg->reply_to_id,
+            'reply_sender'      => $msg->replyTo?->sender_name,
+            'reply_text'        => $msg->replyTo ? \Str::limit(strip_tags($msg->replyTo->message), 40) : null,
             'file_url'          => $fileUrl,
             'file_type'         => $msg->file_type,
             'original_filename' => $msg->original_filename,
-            'created_at'        => $msg->created_at->format('M d, Y H:i'),
+            'created_at'        => $msg->created_at->format('m/d/Y h:i A'),
             'time_ago'          => $msg->created_at->diffForHumans(),
         ];
     }

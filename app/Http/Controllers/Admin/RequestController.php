@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\RequestNotificationMail;
+use App\Models\CustomizationAnswer;
 use App\Models\CustomizationRequest;
 use App\Models\PortalUser;
 use Illuminate\Http\Request;
@@ -60,11 +61,13 @@ class RequestController extends Controller
 
         $requests    = $query->paginate(20)->withQueryString();
         $canAssign   = $user->hasPermissionTo('assign_technician');
+        // Admin/user can edit; technicians cannot
+        $canEdit     = $user->hasPermissionTo('edit_request');
         $technicians = $canAssign ? PortalUser::where('is_active', true)->get() : collect();
         $supervisors = $canAssign ? PortalUser::where('is_active', true)->get() : collect();
         $statuses    = CustomizationRequest::statuses();
 
-        return view('admin.requests.index', compact('requests', 'technicians', 'supervisors', 'seeAll', 'canAssign', 'statuses'));
+        return view('admin.requests.index', compact('requests', 'technicians', 'supervisors', 'seeAll', 'canAssign', 'canEdit', 'statuses'));
     }
 
     public function show(CustomizationRequest $customizationRequest)
@@ -95,6 +98,8 @@ class RequestController extends Controller
 
         $request->validate([
             'assigned_tech_id1' => 'required|exists:portal_users,id',
+            'pay_type'          => 'nullable|in:1,2',
+            'pay_amount'        => 'nullable|numeric|min:0',
         ]);
 
         $tech1      = PortalUser::find($request->assigned_tech_id1);
@@ -105,6 +110,8 @@ class RequestController extends Controller
             'tech1'      => $customizationRequest->assigned_tech_name1,
             'tech2'      => $customizationRequest->assigned_tech_name2,
             'supervisor' => $customizationRequest->supervisor_name,
+            'pay_type'   => $customizationRequest->pay_type,
+            'pay_amount' => $customizationRequest->pay_amount,
         ];
 
         $customizationRequest->update([
@@ -117,6 +124,8 @@ class RequestController extends Controller
             'status'              => CustomizationRequest::STATUS_ASSIGNED,
             'tech_receive_date'   => now(),
             'last_updated_by'     => $user->id,
+            'pay_type'            => $request->pay_type ?? 1,
+            'pay_amount'          => $request->pay_type == 2 ? $request->pay_amount : 0,
         ]);
 
         activity('customization')
@@ -213,6 +222,121 @@ class RequestController extends Controller
             ->paginate(30);
 
         return view('admin.requests.logs', compact('customizationRequest', 'logs'));
+    }
+
+    /**
+     * Edit form — admin/user only, technicians cannot edit.
+     */
+    public function edit(CustomizationRequest $customizationRequest)
+    {
+        $user = Auth::guard('portal')->user();
+        abort_unless($user->hasPermissionTo('edit_request'), 403, 'Not authorized to edit requests.');
+
+        $customizationRequest->load(['answers']);
+        return view('admin.requests.edit', compact('customizationRequest'));
+    }
+
+    /**
+     * Persist edits, log every changed field via spatie activitylog.
+     */
+    public function update(Request $request, CustomizationRequest $customizationRequest)
+    {
+        $user = Auth::guard('portal')->user();
+        abort_unless($user->hasPermissionTo('edit_request'), 403, 'Not authorized to edit requests.');
+
+        $request->validate([
+            'first_name'        => 'required|string|max:100',
+            'last_name'         => 'required|string|max:100',
+            'email'             => 'required|email',
+            'phone'             => 'required|string|max:20',
+            'sec_phone'         => 'nullable|string|max:20',
+            'company_name'      => 'required|string|max:200',
+            'company_phone'     => 'required|string|max:200',
+            'company_address'   => 'nullable|string',
+            'req_primary_color' => 'nullable|string|max:20',
+            'req_sec_color'     => 'nullable|string|max:20',
+            'request_description' => 'nullable|string',
+        ]);
+
+        // Capture only the fields we allow editing
+        $editable = [
+            'first_name', 'last_name', 'email', 'phone', 'sec_phone',
+            'company_name', 'company_phone', 'company_address',
+            'req_primary_color', 'req_sec_color', 'request_description',
+            'req_logo', 'req_icon', 'req_app_background', 'req_landing_page', 'req_others',
+        ];
+
+        $old = collect($editable)->mapWithKeys(fn ($k) => [$k => $customizationRequest->$k])->toArray();
+
+        $data = $request->only(['first_name', 'last_name', 'email', 'phone', 'sec_phone',
+            'company_name', 'company_phone', 'company_address',
+            'req_primary_color', 'req_sec_color', 'request_description']);
+
+        $data['req_logo']           = $request->boolean('req_logo');
+        $data['req_icon']           = $request->boolean('req_icon');
+        $data['req_app_background'] = $request->boolean('req_app_background');
+        $data['req_landing_page']   = $request->boolean('req_landing_page');
+        $data['req_others']         = $request->boolean('req_others');
+        $data['last_updated_by']    = $user->id;
+
+        $customizationRequest->update($data);
+
+        // Diff only fields that actually changed, so the log is readable
+        $changed = [];
+        foreach ($editable as $field) {
+            if ($old[$field] != $customizationRequest->$field) {
+                $changed[$field] = ['old' => $old[$field], 'new' => $customizationRequest->$field];
+            }
+        }
+
+        // ============ Persist questionary answers (upsert by question_key) ============
+        $questionKeys = [
+            'question_1'    => 'What domain name would you like to be displayed in your website?',
+            'question_2'    => 'What are your gifts, talents, products and/or services and what are you passionate about?',
+            'question_3'    => 'If you never got paid for it, what could you do for the rest of your life that brings you happiness?',
+            'question_4'    => 'List 5 things you love to do in order of importance.',
+            'question_5'    => 'How many followers do you have on other platforms',
+            'question_11'   => 'Do you have a thumbnail image for your content management or master courses?',
+            'question_12'   => 'Can you provide us with your website content for your landing page?',
+            'question_13'   => 'Can you provide us with your campaign content for your lead capture page?',
+            'question_14'   => 'Do you have product images for your e-commerce store?',
+            'question_15'   => 'Do you have a banner image for your e-commerce store?',
+            'question_16'   => 'Do you have any videos for your landing page, e-commerce store or master courses?',
+            'question_17'   => 'What would you like to do in your VIP to share your gift, talent, products and/or services?',
+            'requirement_1' => 'How will you use this order?',
+            'requirement_2' => 'Which industry is most relevant to your order?',
+            'requirement_3' => 'What are you looking to achieve with this order?',
+            'requirement_4' => 'Relevant data',
+        ];
+
+        $oldAnswers = CustomizationAnswer::where('request_id', $customizationRequest->id)
+            ->pluck('answer', 'question_key')->toArray();
+
+        foreach ($questionKeys as $key => $text) {
+            $newValue = $request->input($key);
+            if ($newValue === null || $newValue === '') {
+                continue;
+            }
+            $oldValue = $oldAnswers[$key] ?? null;
+            if ((string) $oldValue !== (string) $newValue) {
+                $changed[$key] = ['old' => $oldValue, 'new' => $newValue];
+            }
+            CustomizationAnswer::updateOrCreate(
+                ['request_id' => $customizationRequest->id, 'question_key' => $key],
+                ['question_text' => $text, 'answer' => $newValue]
+            );
+        }
+
+        if (!empty($changed)) {
+            activity('customization')
+                ->causedBy($user)
+                ->performedOn($customizationRequest)
+                ->withProperties(['changes' => $changed])
+                ->log('request_edited');
+        }
+
+        return redirect()->route('admin.requests.show', $customizationRequest)
+            ->with('success', 'Request updated successfully.');
     }
 
     private function calcBusinessDays($start, $end): int

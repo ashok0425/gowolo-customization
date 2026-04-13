@@ -14,7 +14,7 @@
 </div>
 
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
                 <div class="d-flex align-items-center">
@@ -24,6 +24,7 @@
                 </div>
             </div>
 
+            @php $portalMe = Auth::guard('portal')->user(); @endphp
             @include('partials.chat', [
                 'chats'                => $chats,
                 'customizationRequest' => $customizationRequest,
@@ -31,8 +32,8 @@
                 'postUrl'              => route('admin.requests.chat.store', $customizationRequest),
                 'pollUrl'              => route('api.chat.poll', ['requestId' => $customizationRequest->id]),
                 'viewerType'           => 'staff',
-                'viewerName'           => Auth::guard('portal')->user()->full_name,
-                'myInitial'            => strtoupper(substr(Auth::guard('portal')->user()->name, 0, 1)),
+                'viewerName'           => $portalMe->full_name,
+                'viewerAvatar'         => 'https://ui-avatars.com/api/?name=' . urlencode($portalMe->full_name) . '&background=662c87&color=fff&size=64&rounded=true',
             ])
         </div>
     </div>

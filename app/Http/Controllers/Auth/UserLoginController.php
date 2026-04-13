@@ -48,6 +48,7 @@ class UserLoginController extends Controller
                 'name'         => trim($user->name . ' ' . ($user->last_name ?? '')),
                 'email'        => $user->email,
                 'phone'        => $user->phone ?? null,
+                'profile_pic'  => $user->profile_pic ?? null,
                 'logged_in_at' => now()->toISOString(),
             ],
         ]);

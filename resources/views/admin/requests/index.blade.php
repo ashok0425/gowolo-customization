@@ -125,6 +125,11 @@
                                             <a class="dropdown-item" href="{{ route('admin.requests.show', $req) }}">
                                                 <i class="fas fa-eye mr-2 text-primary"></i> View Details
                                             </a>
+                                            @if($canEdit)
+                                            <a class="dropdown-item" href="{{ route('admin.requests.edit', $req) }}">
+                                                <i class="fas fa-edit mr-2 text-warning"></i> Edit Request
+                                            </a>
+                                            @endif
                                             <a class="dropdown-item" href="{{ route('admin.requests.chat', $req) }}">
                                                 <i class="fas fa-comment mr-2 text-info"></i> Chat
                                             </a>
@@ -134,11 +139,18 @@
                                             </a>
                                             @endif
                                             <div class="dropdown-divider"></div>
-                                            <a class="dropdown-item" href="#" onclick="openStatusModal({{ $req->id }}, {{ $req->status }});return false;">
+                                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#statusModal"
+                                               data-id="{{ $req->id }}" data-status="{{ $req->status }}">
                                                 <i class="fas fa-exchange-alt mr-2 text-warning"></i> Change Status
                                             </a>
                                             @if($canAssign)
-                                            <a class="dropdown-item" href="#" onclick="openAssignModal({{ $req->id }}, {{ $req->assigned_tech_id1 ?? 'null' }}, {{ $req->assigned_tech_id2 ?? 'null' }}, {{ $req->supervisor_id ?? 'null' }});return false;">
+                                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#assignModal"
+                                               data-id="{{ $req->id }}"
+                                               data-tech1="{{ $req->assigned_tech_id1 }}"
+                                               data-tech2="{{ $req->assigned_tech_id2 }}"
+                                               data-supervisor="{{ $req->supervisor_id }}"
+                                               data-paytype="{{ $req->pay_type }}"
+                                               data-amount="{{ $req->pay_amount }}">
                                                 <i class="fas fa-user-plus mr-2 text-success"></i> Assign Technician
                                             </a>
                                             @endif
@@ -166,61 +178,71 @@
     </div>
 </div>
 
-{{-- Change Status Modal --}}
-<div class="modal fade" id="statusModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
+{{-- ================= Change Status Modal (Bootstrap 4) ================= --}}
+<div class="modal fade" id="statusModal" tabindex="-1" role="dialog" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-exchange-alt mr-1"></i> Change Status</h5>
-                <button type="button" class="close" data-dismiss="modal" style="color:#fff;"><span>&times;</span></button>
+            <div class="modal-header" style="background:#662c87;color:#fff;">
+                <h5 class="modal-title" id="statusModalLabel"><i class="fas fa-exchange-alt mr-2"></i> Change Request Status</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:#fff;text-shadow:none;opacity:1;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <form id="statusForm">
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <input type="hidden" id="statusReqId">
-                    <div class="form-group">
-                        <label>New Status</label>
-                        <select class="form-control" id="statusSelect">
-                            @if($seeAll)
-                                @foreach($statuses as $val => $label)
-                                <option value="{{ $val }}">{{ $label }}</option>
-                                @endforeach
-                            @else
-                                <option value="2">In Review</option>
-                                <option value="3">Sent for Review</option>
-                            @endif
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><strong>New Status</strong></label>
+                                <select class="form-control form-control-lg" id="statusSelect">
+                                    @if($seeAll)
+                                        @foreach($statuses as $val => $label)
+                                        <option value="{{ $val }}">{{ $label }}</option>
+                                        @endforeach
+                                    @else
+                                        <option value="2">In Review</option>
+                                        <option value="3">Sent for Review</option>
+                                    @endif
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Comments (optional)</label>
-                        <textarea class="form-control" id="statusComments" rows="2"></textarea>
+                        <label><strong>Comments</strong> <small class="text-muted">(optional)</small></label>
+                        <textarea class="form-control" id="statusComments" rows="4" placeholder="Add any notes or comments about this status change..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="submitStatus()">Update</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitStatus()">
+                        <i class="fas fa-check mr-1"></i> Update Status
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-{{-- Assign Technician Modal --}}
+{{-- ================= Assign Technician Modal (Bootstrap 4) ================= --}}
 @if($canAssign)
-<div class="modal fade" id="assignModal" tabindex="-1">
-    <div class="modal-dialog">
+<div class="modal fade" id="assignModal" tabindex="-1" role="dialog" aria-labelledby="assignModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-user-plus mr-1"></i> Assign Technician</h5>
-                <button type="button" class="close" data-dismiss="modal" style="color:#fff;"><span>&times;</span></button>
+            <div class="modal-header" style="background:#662c87;color:#fff;">
+                <h5 class="modal-title" id="assignModalLabel"><i class="fas fa-user-plus mr-2"></i> Assign Technician & Set Price</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:#fff;text-shadow:none;opacity:1;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <form id="assignForm" method="POST">
+            <form id="assignForm">
                 @csrf
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <input type="hidden" id="assignReqId">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Technician 1 <span class="text-danger">*</span></label>
+                                <label><strong>Technician 1</strong> <span class="text-danger">*</span></label>
                                 <select name="assigned_tech_id1" id="assignTech1" class="form-control" required>
                                     <option value="">— Select —</option>
                                     @foreach($technicians as $tech)
@@ -231,7 +253,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Technician 2</label>
+                                <label><strong>Technician 2</strong> <small class="text-muted">(optional)</small></label>
                                 <select name="assigned_tech_id2" id="assignTech2" class="form-control">
                                     <option value="">— None —</option>
                                     @foreach($technicians as $tech)
@@ -242,7 +264,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Supervisor</label>
+                                <label><strong>Supervisor</strong> <small class="text-muted">(optional)</small></label>
                                 <select name="supervisor_id" id="assignSupervisor" class="form-control">
                                     <option value="">— None —</option>
                                     @foreach($supervisors as $sup)
@@ -252,10 +274,39 @@
                             </div>
                         </div>
                     </div>
+
+                    <hr>
+                    <h6 class="mb-3"><i class="fas fa-dollar-sign mr-1 text-success"></i> Payment Details</h6>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><strong>Request Type</strong></label>
+                                <select name="pay_type" id="assignPayType" class="form-control">
+                                    <option value="1">Free</option>
+                                    <option value="2">Paid</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="amountGroup" style="display:none;">
+                            <div class="form-group">
+                                <label><strong>Amount (USD)</strong> <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">$</span>
+                                    </div>
+                                    <input type="number" name="pay_amount" id="assignAmount" class="form-control" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                <small class="text-muted">User will see "Pay Now" after amount is set.</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="submitAssign()">Assign</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitAssign()">
+                        <i class="fas fa-check mr-1"></i> Assign & Save
+                    </button>
                 </div>
             </form>
         </div>
@@ -266,13 +317,14 @@
 
 @push('js')
 <script>
-// Change Status
-function openStatusModal(reqId, currentStatus) {
-    $('#statusReqId').val(reqId);
-    $('#statusSelect').val(currentStatus);
+// ==================== Status Modal ====================
+// Populate from data-attributes when modal opens
+$('#statusModal').on('show.bs.modal', function(e) {
+    var $link = $(e.relatedTarget);
+    $('#statusReqId').val($link.data('id'));
+    $('#statusSelect').val($link.data('status'));
     $('#statusComments').val('');
-    $('#statusModal').modal('show');
-}
+});
 
 function submitStatus() {
     var reqId = $('#statusReqId').val();
@@ -290,22 +342,42 @@ function submitStatus() {
     });
 }
 
-// Assign Technician
-function openAssignModal(reqId, tech1, tech2, supervisor) {
-    $('#assignReqId').val(reqId);
-    $('#assignTech1').val(tech1 || '');
-    $('#assignTech2').val(tech2 || '');
-    $('#assignSupervisor').val(supervisor || '');
-    $('#assignModal').modal('show');
-}
+// ==================== Assign Technician Modal ====================
+$('#assignModal').on('show.bs.modal', function(e) {
+    var $link = $(e.relatedTarget);
+    $('#assignReqId').val($link.data('id'));
+    $('#assignTech1').val($link.data('tech1') || '');
+    $('#assignTech2').val($link.data('tech2') || '');
+    $('#assignSupervisor').val($link.data('supervisor') || '');
+    $('#assignPayType').val($link.data('paytype') || 1);
+    $('#assignAmount').val($link.data('amount') || '');
+    // Toggle amount visibility based on pay type
+    $('#amountGroup').toggle($('#assignPayType').val() == '2');
+});
+
+// Toggle amount field when pay type changes
+$(document).on('change', '#assignPayType', function() {
+    $('#amountGroup').toggle(this.value == '2');
+});
 
 function submitAssign() {
     var reqId = $('#assignReqId').val();
+    var payType = $('#assignPayType').val();
+    var payAmount = $('#assignAmount').val();
+
+    if (payType == '2' && (!payAmount || parseFloat(payAmount) <= 0)) {
+        alert('Please enter a valid amount for paid requests.');
+        $('#assignAmount').focus();
+        return;
+    }
+
     $.post('/admin/requests/' + reqId + '/assign', {
         _token: $('meta[name="csrf-token"]').attr('content'),
         assigned_tech_id1: $('#assignTech1').val(),
         assigned_tech_id2: $('#assignTech2').val(),
-        supervisor_id: $('#assignSupervisor').val()
+        supervisor_id: $('#assignSupervisor').val(),
+        pay_type: payType,
+        pay_amount: payAmount
     }).done(function() {
         $('#assignModal').modal('hide');
         location.reload();

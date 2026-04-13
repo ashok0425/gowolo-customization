@@ -35,9 +35,12 @@ return [
         ],
     ],
 
-    // Dashboardv2 "Pay Now" URL — redirects back to dashboardv2's make-payment flow
+    // dashboardv2 URLs — base URL is used to resolve user profile pics,
+    // make_payment_url is the netwostore "Pay Now" endpoint.
+    // Pay Now format: {make_payment_url}?uid={base64(email)}&type=custom&id={request_id}
     'dashboardv2' => [
-        'make_payment_url' => env('MAKE_PAYMENT_URL', 'https://dashboard.gowologlobal.com/make-payment'),
+        'base_url'         => env('DASHBOARDV2_URL', 'https://dashboard.gowologlobal.com'),
+        'make_payment_url' => env('MAKE_PAYMENT_URL', 'https://netwostore.gowologlobal.com/gowolo-make-payment'),
     ],
 
 ];
