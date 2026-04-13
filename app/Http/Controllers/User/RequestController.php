@@ -16,27 +16,22 @@ use Illuminate\Support\Facades\Mail;
 class RequestController extends Controller
 {
     const QUESTIONS = [
-        'question_1'  => 'What is the name of your community/business?',
-        'question_2'  => 'What is your community handle name?',
-        'question_3'  => 'What is your desired domain name?',
-        'question_4'  => 'Describe your primary brand colors',
-        'question_5'  => 'Do you have an existing logo?',
-        'question_6'  => 'Do you have an existing Gowolo account?',
-        'question_7'  => 'What type of content will you share?',
-        'question_8'  => 'What features are most important to you?',
-        'question_9'  => 'How many members do you expect?',
-        'question_10' => 'What is your target audience?',
-        'question_11' => 'Do you need donation/payment features?',
-        'question_12' => 'Do you need a custom landing page?',
-        'question_13' => 'What is your preferred app background style?',
-        'question_14' => 'Do you need push notifications?',
-        'question_15' => 'Do you have a website to integrate with?',
-        'question_16' => 'What is your launch timeline?',
-        'question_17' => 'Any additional requirements?',
-        'requirement_1' => 'Logo requirement details',
-        'requirement_2' => 'Icon requirement details',
-        'requirement_3' => 'Background requirement details',
-        'requirement_4' => 'Other requirement details',
+        'question_1'  => 'What domain name would you like to be displayed in your website?',
+        'question_2'  => 'What are your gifts, talents, products and/or services and what are you passionate about?',
+        'question_3'  => 'If you never got paid for it, what could you do for the rest of your life that brings you happiness?',
+        'question_4'  => 'List 5 things you love to do in order of importance.',
+        'question_5'  => 'How many followers do you have on other platforms',
+        'question_11' => 'Do you have a thumbnail image for your content management or master courses?',
+        'question_12' => 'Can you provide us with your website content for your landing page?',
+        'question_13' => 'Can you provide us with your campaign content for your lead capture page?',
+        'question_14' => 'Do you have product images for your e-commerce store?',
+        'question_15' => 'Do you have a banner image for your e-commerce store?',
+        'question_16' => 'Do you have any videos for your landing page, e-commerce store or master courses?',
+        'question_17' => 'What would you like to do in your VIP to share your gift, talent, products and/or services?',
+        'requirement_1' => 'How will you use this order?',
+        'requirement_2' => 'Which industry is most relevant to your order?',
+        'requirement_3' => 'What are you looking to achieve with this order?',
+        'requirement_4' => 'Relevant data',
     ];
 
     public function __construct(
@@ -67,7 +62,8 @@ class RequestController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        // Base validation (always required)
+        $rules = [
             'first_name'        => 'required|string|max:100',
             'last_name'         => 'required|string|max:100',
             'email'             => 'required|email',
@@ -76,7 +72,30 @@ class RequestController extends Controller
             'company_phone'     => 'required|string|max:200',
             'company_address'   => 'nullable|string',
             'req_primary_color' => 'required|string|max:20',
-        ]);
+            'req_sec_color'     => 'required|string|max:20',
+            'addition_feature'  => 'required|in:0,1',
+        ];
+
+        // Questionary is only required when "Additional Features = Yes"
+        if ($request->input('addition_feature') == '1') {
+            $rules = array_merge($rules, [
+                'question_1'    => 'required|string',
+                'question_2'    => 'required|string',
+                'question_3'    => 'required|string',
+                'question_4'    => 'required|string',
+                'question_5'    => 'required|string',
+                'question_11'   => 'required|in:0,1',
+                'question_12'   => 'required|in:0,1',
+                'question_13'   => 'required|in:0,1',
+                'question_14'   => 'required|in:0,1',
+                'question_15'   => 'required|in:0,1',
+                'question_16'   => 'required|in:0,1',
+                'question_17'   => 'required|string',
+                'requirement_4' => 'required|string',
+            ]);
+        }
+
+        $request->validate($rules);
 
         $ssoUser   = session('auth_user');
         $lastId    = CustomizationRequest::max('id') ?? 0;

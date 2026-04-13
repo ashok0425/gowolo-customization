@@ -55,12 +55,19 @@
                                     <span class="badge {{ $req->status_badge }}">{{ $req->status_label }}</span>
                                 </td>
                                 <td>
-                                    @if($req->pay_type == 1)
+                                    @php $makePaymentUrl = config('services.dashboardv2.make_payment_url'); @endphp
+                                    @if(isset($req->pay_status) && $req->pay_status == 1)
+                                        <span class="text-primary font-weight-bold"><i class="fas fa-check-circle mr-1"></i> Payment Done</span>
+                                    @elseif($req->pay_type == 2 && empty($req->pay_status))
+                                        <a href="{{ $makePaymentUrl }}?type=custom&id={{ $req->id }}"
+                                           class="btn btn-sm paynow"
+                                           style="background:#662c87;color:#fff;border-radius:50px;padding:4px 14px;font-size:12px;font-weight:600;">
+                                            Pay Now
+                                        </a>
+                                    @elseif($req->pay_type == 1)
                                         <span class="badge badge-secondary">Free</span>
                                     @else
-                                        <span class="badge {{ $req->pay_status ? 'badge-success' : 'badge-danger' }}">
-                                            {{ $req->pay_status ? 'Paid' : 'Pending Payment' }}
-                                        </span>
+                                        <span class="text-warning">Not Set</span>
                                     @endif
                                 </td>
                                 <td>{{ $req->primaryTechnician?->full_name ?? '—' }}</td>

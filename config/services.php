@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // Dashboardv2 "Pay Now" URL — redirects back to dashboardv2's make-payment flow
+    'dashboardv2' => [
+        'make_payment_url' => env('MAKE_PAYMENT_URL', 'https://dashboard.gowologlobal.com/make-payment'),
+    ],
+
 ];

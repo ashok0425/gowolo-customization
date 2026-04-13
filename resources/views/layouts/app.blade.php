@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="{{ asset('admin/assets/css/atlantis.css') }}">
     <link rel="stylesheet" href="{{ asset('common/css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 
     <style>
         :root {
@@ -593,6 +594,7 @@
 
 {{-- Core JS — js/app.js is the compiled Mix bundle with jQuery + Bootstrap + Popper --}}
 <script src="{{ asset('js/app.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="{{ asset('admin/assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js') }}"></script>
 <script src="{{ asset('admin/assets/js/atlantis.js') }}"></script>
 <script src="{{ asset('common/vendor/datatable/datatables.min.js') }}"></script>
@@ -613,6 +615,35 @@
 
     // CSRF setup for all AJAX
     $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+
+    // Toastr config
+    toastr.options = {
+        closeButton: true,
+        progressBar: true,
+        positionClass: 'toast-top-right',
+        timeOut: 4000,
+        showDuration: 300,
+        hideDuration: 300
+    };
+
+    // Flash messages
+    @if(session('success'))
+        toastr.success(@json(session('success')));
+    @endif
+    @if(session('error'))
+        toastr.error(@json(session('error')));
+    @endif
+    @if(session('warning'))
+        toastr.warning(@json(session('warning')));
+    @endif
+    @if(session('info'))
+        toastr.info(@json(session('info')));
+    @endif
+    @if($errors->any())
+        @foreach($errors->all() as $err)
+            toastr.error(@json($err));
+        @endforeach
+    @endif
 
     $(function() {
         // Date range pickers — matches dashboardv2 configuration

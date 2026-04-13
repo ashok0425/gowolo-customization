@@ -176,16 +176,20 @@ class RequestController extends Controller
 
         $customizationRequest->update($data);
 
+        $statuses = CustomizationRequest::statuses();
+
         activity('customization')
             ->causedBy($user)
             ->performedOn($customizationRequest)
-            ->withProperties(['old' => ['status' => $oldStatus], 'new' => ['status' => $request->status]])
+            ->withProperties([
+                'old' => ['status' => $statuses[$oldStatus] ?? (string) $oldStatus],
+                'new' => ['status' => $statuses[(int) $request->status] ?? (string) $request->status],
+            ])
             ->log('status_changed');
 
         // Notify configured email about the status change
         $notifyEmail = config('mail.notification_email');
         if ($notifyEmail) {
-            $statuses = CustomizationRequest::statuses();
             try {
                 Mail::to($notifyEmail)->send(new RequestNotificationMail(
                     $customizationRequest->fresh(),

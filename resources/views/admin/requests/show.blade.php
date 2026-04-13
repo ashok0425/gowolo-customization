@@ -116,62 +116,6 @@
         </div>
         @endif
 
-        {{-- Status Update (for techs and admins) --}}
-        @if($seeAll || $customizationRequest->status == 1)
-        <div class="card">
-            <div class="card-header"><h4 class="card-title">Update Status</h4></div>
-            <div class="card-body">
-                <form id="statusForm">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label>Status</label>
-                                <select name="status" id="statusSelect" class="form-control">
-                                    @if(!$seeAll)
-                                        <option value="2" {{ $customizationRequest->status == 2 ? 'selected' : '' }}>In Review</option>
-                                        <option value="3" {{ $customizationRequest->status == 3 ? 'selected' : '' }}>Sent for Review</option>
-                                    @else
-                                        <option value="0" {{ $customizationRequest->status == 0 ? 'selected' : '' }}>Pending</option>
-                                        <option value="1" {{ $customizationRequest->status == 1 ? 'selected' : '' }}>Assigned</option>
-                                        <option value="2" {{ $customizationRequest->status == 2 ? 'selected' : '' }}>In Review</option>
-                                        <option value="3" {{ $customizationRequest->status == 3 ? 'selected' : '' }}>Sent for Review</option>
-                                        <option value="4" {{ $customizationRequest->status == 4 ? 'selected' : '' }}>Approved</option>
-                                        <option value="5" {{ $customizationRequest->status == 5 ? 'selected' : '' }}>Completed</option>
-                                    @endif
-                                </select>
-                            </div>
-                        </div>
-                        @if($seeAll)
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label>Pay Type</label>
-                                <select name="pay_type" class="form-control">
-                                    <option value="1" {{ $customizationRequest->pay_type == 1 ? 'selected' : '' }}>Free</option>
-                                    <option value="2" {{ $customizationRequest->pay_type == 2 ? 'selected' : '' }}>Paid</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label>Amount (USD)</label>
-                                <input type="number" name="pay_amount" class="form-control" step="0.01" min="0"
-                                       value="{{ $customizationRequest->pay_amount }}">
-                            </div>
-                        </div>
-                        @endif
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label>Technician Comments</label>
-                                <textarea name="technician_comments" class="form-control" rows="3">{{ $customizationRequest->technician_comments }}</textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Update Status</button>
-                </form>
-            </div>
-        </div>
-        @endif
-
     </div>
 
     {{-- Right: Assignment + Actions --}}
@@ -210,52 +154,6 @@
             </div>
         </div>
 
-        {{-- Assign form — admin/supervisor only --}}
-        @if($seeAll)
-        <div class="card">
-            <div class="card-header"><h4 class="card-title">Assign Technician</h4></div>
-            <div class="card-body">
-                <form method="POST" action="{{ route('admin.requests.assign', $customizationRequest) }}">
-                    @csrf
-                    <div class="form-group">
-                        <label>Technician 1 <span class="text-danger">*</span></label>
-                        <select name="assigned_tech_id1" class="form-control select2" required>
-                            <option value="">— Select —</option>
-                            @foreach($technicians as $tech)
-                            <option value="{{ $tech->id }}" {{ $customizationRequest->assigned_tech_id1 == $tech->id ? 'selected' : '' }}>
-                                {{ $tech->full_name }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Technician 2</label>
-                        <select name="assigned_tech_id2" class="form-control select2">
-                            <option value="">— None —</option>
-                            @foreach($technicians as $tech)
-                            <option value="{{ $tech->id }}" {{ $customizationRequest->assigned_tech_id2 == $tech->id ? 'selected' : '' }}>
-                                {{ $tech->full_name }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Supervisor</label>
-                        <select name="supervisor_id" class="form-control select2">
-                            <option value="">— None —</option>
-                            @foreach($supervisors as $sup)
-                            <option value="{{ $sup->id }}" {{ $customizationRequest->supervisor_id == $sup->id ? 'selected' : '' }}>
-                                {{ $sup->full_name }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-block">Assign</button>
-                </form>
-            </div>
-        </div>
-        @endif
-
         {{-- Quick Actions --}}
         <div class="card">
             <div class="card-header"><h4 class="card-title">Actions</h4></div>
@@ -278,18 +176,3 @@
 </div>
 @endsection
 
-@push('js')
-<script>
-$('#statusForm').on('submit', function(e) {
-    e.preventDefault();
-    $.post('{{ route('admin.requests.status', $customizationRequest) }}', $(this).serialize())
-        .done(function(res) {
-            if (res.success) {
-                toastr ? toastr.success(res.message) : alert(res.message);
-                setTimeout(() => location.reload(), 800);
-            }
-        })
-        .fail(function() { alert('Error updating status.'); });
-});
-</script>
-@endpush
