@@ -84,7 +84,7 @@ class ChatController extends Controller
             null  // broadcast to all staff
         );
 
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true, 'chat' => $this->formatChat($chat)]);
     }
 
     private function getFileType(string $ext): string
@@ -92,6 +92,26 @@ class ChatController extends Controller
         if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) return 'image';
         if ($ext === 'pdf') return 'pdf';
         return 'document';
+    }
+
+    private function formatChat(CustomizationChat $chat): array
+    {
+        $chat->loadMissing('replyTo');
+        return [
+            'id'                => $chat->id,
+            'sender_type'       => $chat->sender_type,
+            'sender_name'       => $chat->sender_name,
+            'message'           => $chat->message,
+            'reply_to_id'       => $chat->reply_to_id,
+            'reply_sender'      => $chat->replyTo?->sender_name,
+            'reply_text'        => $chat->replyTo ? \Str::limit(strip_tags($chat->replyTo->message), 40) : null,
+            'file_type'         => $chat->file_type,
+            'file_url'          => $chat->bunny_path
+                ? app(BunnyStorageService::class)->signedUrl($chat->bunny_path)
+                : ($chat->local_path ? asset($chat->local_path) : null),
+            'original_filename' => $chat->original_filename,
+            'created_at'        => $chat->created_at->format('M d, Y H:i'),
+        ];
     }
 
     private function authorizeSso(CustomizationRequest $request): void
