@@ -25,6 +25,8 @@ class UserManagementController extends Controller
         'manage_settings',
         'view_payments',
         'send_chat',
+        'view_messages',
+        'view_notifications',
     ];
 
     private function ensurePermissions(): void

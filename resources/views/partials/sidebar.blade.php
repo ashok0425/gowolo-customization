@@ -65,6 +65,7 @@
         </div>
     </li>
 
+    @if($portalUser->hasPermissionTo('view_messages'))
     <li class="nav-item nav-item1 {{ request()->routeIs('inbox.messages') ? 'active' : '' }}">
         <a href="{{ route('inbox.messages') }}" class="link1">
             <i class="fas fa-envelope"></i>
@@ -79,6 +80,8 @@
             @endif
         </a>
     </li>
+    @endif
+    @if($portalUser->hasPermissionTo('view_notifications'))
     <li class="nav-item nav-item1 {{ request()->routeIs('inbox.notifications') ? 'active' : '' }}">
         <a href="{{ route('inbox.notifications') }}" class="link1">
             <i class="fas fa-bell"></i>
@@ -93,6 +96,7 @@
             @endif
         </a>
     </li>
+    @endif
 
     <li class="nav-item nav-item1 {{ request()->routeIs('admin.bug-reports.*') ? 'active' : '' }}">
         <a href="{{ route('admin.bug-reports.index') }}" class="link1">

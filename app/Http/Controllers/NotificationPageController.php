@@ -15,6 +15,11 @@ class NotificationPageController extends Controller
 {
     public function messages(Request $request)
     {
+        // Staff need explicit permission; SSO users can always see their own inbox
+        if (Auth::guard('portal')->check()) {
+            abort_unless(Auth::guard('portal')->user()->hasPermissionTo('view_messages'), 403);
+        }
+
         $query = $this->baseQuery()->where('type', 'new_chat');
         $notifications = $query->paginate(20)->withQueryString();
 
@@ -29,6 +34,10 @@ class NotificationPageController extends Controller
 
     public function notifications(Request $request)
     {
+        if (Auth::guard('portal')->check()) {
+            abort_unless(Auth::guard('portal')->user()->hasPermissionTo('view_notifications'), 403);
+        }
+
         $query = $this->baseQuery()->where('type', '!=', 'new_chat');
         $notifications = $query->paginate(20)->withQueryString();
 
