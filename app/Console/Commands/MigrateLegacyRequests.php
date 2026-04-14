@@ -152,7 +152,9 @@ class MigrateLegacyRequests extends Command
                     continue;
                 }
 
-                $newRequest = CustomizationRequest::create($data);
+                // Use forceCreate so created_at/updated_at from legacy data
+                // are preserved instead of being overwritten with now()
+                $newRequest = CustomizationRequest::forceCreate($data);
 
                 // Migrate related customization_questions (questionnaire answers)
                 $questions = DB::connection('dashboard_db')
@@ -243,7 +245,7 @@ class MigrateLegacyRequests extends Command
                         $originalName = basename($chat->file);
                     }
 
-                    CustomizationChat::create([
+                    CustomizationChat::forceCreate([
                         'request_id'        => $newRequest->id,
                         'sender_type'       => $senderType,
                         'sender_id'         => $chat->user_id,
@@ -269,7 +271,7 @@ class MigrateLegacyRequests extends Command
                     ->get();
 
                 foreach ($legacyFiles as $file) {
-                    CustomizationFile::create([
+                    CustomizationFile::forceCreate([
                         'request_id'       => $newRequest->id,
                         'uploaded_by_type' => 'user',
                         'uploaded_by_id'   => $file->user_id,
