@@ -96,31 +96,37 @@
         cursor: pointer;
     }
 
-    /* Reply button next to each message */
+    /* Reply button — centered on top of each bubble */
+    .chat-bubble { position: relative; }
     .reply-inline {
-        display: inline-flex;
+        display: none;
         align-items: center;
         gap: 4px;
         background: #fff;
         border: 1px solid #e0e0e0;
         border-radius: 20px;
-        padding: 4px 12px;
-        font-size: 11px;
+        padding: 2px 10px;
+        font-size: 10px;
         color: #666;
         cursor: pointer;
-        margin: 4px;
         text-decoration: none;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         transition: all 0.15s;
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        white-space: nowrap;
     }
+    .message:hover .reply-inline { display: inline-flex; }
     .reply-inline:hover {
         background: #f9f3fc;
         color: #662c87;
         border-color: #662c87;
         text-decoration: none;
     }
-    .reply-inline i { font-size: 10px; }
-    .message .reply-inline { vertical-align: middle; }
+    .reply-inline i { font-size: 9px; }
 
     /* Bootstrap custom file input override */
     .custom-file-label::after { content: "Browse"; }
@@ -174,6 +180,10 @@
             @endif
 
             <div class="{{ $isMine ? 'sent' : 'received' }} chat-bubble">
+                <a href="#" class="reply-inline reply-btn" data-id="{{ $chat->id }}" data-sender="{{ $chat->sender_name }}" data-text="{{ Str::limit(strip_tags($chat->message), 50) }}">
+                    <i class="fas fa-reply"></i> Reply
+                </a>
+
                 @if($chat->reply_to_id && $chat->replyTo)
                 <div class="reply-ref"><strong>{{ $chat->replyTo->sender_name }}</strong>: {{ Str::limit(strip_tags($chat->replyTo->message), 40) }}</div>
                 @endif
@@ -204,10 +214,6 @@
                     {{ $chat->created_at->format('m/d/Y h:i:A') }}
                 </div>
             </div>
-
-            <a href="#" class="reply-inline reply-btn" data-id="{{ $chat->id }}" data-sender="{{ $chat->sender_name }}" data-text="{{ Str::limit(strip_tags($chat->message), 50) }}">
-                <i class="fas fa-reply"></i> Reply
-            </a>
         </li>
         @endforeach
         <div id="chat-end"></div>
@@ -323,15 +329,17 @@ function appendMessage(msg) {
     var avatarLeft  = '<img src="' + avatarUrl + '" alt="' + (msg.sender_name || '') + '" style="float:left;width:50px;height:50px;margin-left:-53px;">';
     var avatarRight = '<img style="float:right;width:50px;height:50px;" class="avatar-lg" src="' + avatarUrl + '" alt="You">';
 
+    var replyBtn = '<a href="#" class="reply-inline reply-btn" data-id="' + msg.id + '" data-sender="' + (msg.sender_name || '') + '" data-text="' + plainText + '"><i class="fas fa-reply"></i> Reply</a>';
+
     var html = '<li class="message clearfix ' + (isMine ? 'sent-wrap' : '') + '" id="li_' + msg.id + '" data-id="' + msg.id + '">'
         + (isMine ? avatarRight : avatarLeft)
         + '<div class="' + (isMine ? 'sent' : 'received') + ' chat-bubble">'
+        +     replyBtn
         +     replyHtml
         +     (msg.message ? '<p style="padding-bottom:10px">' + msg.message + '</p>' : '')
         +     fileHtml
         +     '<div class="d-flex ' + timeClass + '" style="font-size:11px;color:#777;">' + msg.created_at + '</div>'
         + '</div>'
-        + '<a href="#" class="reply-inline reply-btn" data-id="' + msg.id + '" data-sender="' + (msg.sender_name || '') + '" data-text="' + plainText + '"><i class="fas fa-reply"></i> Reply</a>'
         + '</li>';
 
     $('#chat-end').before(html);
