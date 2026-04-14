@@ -4,59 +4,60 @@
     <meta charset="UTF-8">
     <title>Quotation — {{ $request->ref_number }}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 25px; color: #333; font-size: 13px; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 25px; color: #000; font-size: 13px; }
         .header {
-            border-bottom: 3px solid #662c87;
+            border-bottom: 3px solid #000;
             padding-bottom: 18px;
             margin-bottom: 25px;
             overflow: hidden;
         }
         .company {
-            float: right; text-align: right; color: #662c87;
+            float: right; text-align: right; color: #000;
             font-size: 22px; font-weight: bold;
         }
         .doc-title {
-            font-size: 30px; font-weight: bold; color: #662c87;
+            font-size: 30px; font-weight: bold; color: #000;
             margin-top: 10px; letter-spacing: 1px;
         }
         .meta { width: 100%; margin-bottom: 25px; }
         .meta td { vertical-align: top; padding: 4px 0; }
-        .meta .label { color: #777; font-weight: bold; }
+        .meta .label { color: #555; font-weight: bold; }
         table.items {
             width: 100%; border-collapse: collapse; margin-bottom: 25px;
         }
         table.items th, table.items td {
-            border: 1px solid #e0e0e0; padding: 10px; text-align: left;
+            border: 1px solid #000; padding: 10px; text-align: left;
         }
         table.items th {
-            background: #662c87; color: #fff; font-weight: bold;
+            background: #000; color: #fff; font-weight: bold;
         }
         .amount { text-align: right; font-weight: bold; }
         .total-row {
             font-size: 16px; font-weight: bold;
-            background: #f9f3fc; color: #662c87;
+            background: #f4f4f4; color: #000;
         }
         .footer {
             margin-top: 35px; padding-top: 18px;
-            border-top: 1px solid #eee;
-            text-align: center; color: #888; font-size: 11px;
+            border-top: 1px solid #000;
+            text-align: center; color: #555; font-size: 11px;
         }
         .notes {
-            background: #fef9ed; padding: 12px 16px;
-            border-left: 4px solid #f39c12;
+            background: #f4f4f4; padding: 12px 16px;
+            border-left: 4px solid #000;
             margin-bottom: 20px; font-size: 12px;
+            color: #000;
         }
         .badge {
             padding: 3px 10px; border-radius: 3px;
             font-size: 11px; font-weight: bold;
-            background: #fff3cd; color: #856404;
+            background: #000; color: #fff;
         }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="company">
-            <img src="{{ public_path('common/img/goWOLO_Logo_Black.png') }}" alt="GoWolo Global" style="height:55px;">
+            <img src="{{ public_path('common/img/goWOLO_logo_Black.png') }}" alt="GoWolo Global" style="height:55px;">
             <div style="font-size:11px;color:#888;font-weight:normal;margin-top:4px;">Customization Services</div>
         </div>
         <div class="doc-title">QUOTATION</div>
