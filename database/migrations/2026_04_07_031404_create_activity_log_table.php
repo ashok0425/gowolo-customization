@@ -21,6 +21,7 @@ return new class extends Migration
             $table->index(['causer_type', 'causer_id'], 'causer_causer_type_causer_id_index');
             $table->json('attribute_changes')->nullable();
             $table->json('properties')->nullable();
+            $table->uuid('batch_uuid')->nullable();
             $table->timestamps();
         });
     }
