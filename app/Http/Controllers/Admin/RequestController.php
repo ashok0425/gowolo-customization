@@ -70,8 +70,10 @@ class RequestController extends Controller
         return view('admin.requests.index', compact('requests', 'technicians', 'supervisors', 'seeAll', 'canAssign', 'canEdit', 'statuses'));
     }
 
-    public function show(CustomizationRequest $customizationRequest)
+    public function show(string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+
         $user   = Auth::guard('portal')->user();
         $seeAll = $user->hasPermissionTo('view_all_requests');
 
@@ -91,8 +93,10 @@ class RequestController extends Controller
         return view('admin.requests.show', compact('customizationRequest', 'technicians', 'supervisors', 'seeAll', 'canAssign'));
     }
 
-    public function assign(Request $request, CustomizationRequest $customizationRequest)
+    public function assign(Request $request, string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+
         $user = Auth::guard('portal')->user();
         abort_unless($user->hasPermissionTo('assign_technician'), 403, 'Not authorized to assign.');
 
@@ -141,8 +145,9 @@ class RequestController extends Controller
         return back()->with('success', 'Technician assigned successfully.');
     }
 
-    public function updateStatus(Request $request, CustomizationRequest $customizationRequest)
+    public function updateStatus(Request $request, string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
         $user    = Auth::guard('portal')->user();
         $seeAll  = $user->hasPermissionTo('view_all_requests');
 
@@ -196,26 +201,28 @@ class RequestController extends Controller
             ])
             ->log('status_changed');
 
-        // Notify configured email about the status change
-        $notifyEmail = config('mail.notification_email');
-        if ($notifyEmail) {
+        // Notify the customer (user) about the status change via email
+        $customerEmail = $customizationRequest->email ?: $customizationRequest->user_email;
+        if ($customerEmail) {
             try {
-                Mail::to($notifyEmail)->send(new RequestNotificationMail(
+                Mail::to($customerEmail)->send(new RequestNotificationMail(
                     $customizationRequest->fresh(),
                     'status_changed',
                     $statuses[$oldStatus] ?? (string) $oldStatus,
-                    $statuses[$request->status] ?? (string) $request->status
+                    $statuses[(int) $request->status] ?? (string) $request->status
                 ));
             } catch (\Throwable $e) {
-                \Log::warning('Failed to send status-change notification: ' . $e->getMessage());
+                \Log::warning('Failed to send status-change email to customer: ' . $e->getMessage());
             }
         }
 
         return response()->json(['success' => true, 'message' => 'Status updated.']);
     }
 
-    public function logs(CustomizationRequest $customizationRequest)
+    public function logs(string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+
         $logs = Activity::where('subject_type', CustomizationRequest::class)
             ->where('subject_id', $customizationRequest->id)
             ->latest()
@@ -227,8 +234,10 @@ class RequestController extends Controller
     /**
      * Edit form — admin/user only, technicians cannot edit.
      */
-    public function edit(CustomizationRequest $customizationRequest)
+    public function edit(string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+
         $user = Auth::guard('portal')->user();
         abort_unless($user->hasPermissionTo('edit_request'), 403, 'Not authorized to edit requests.');
 
@@ -239,8 +248,10 @@ class RequestController extends Controller
     /**
      * Persist edits, log every changed field via spatie activitylog.
      */
-    public function update(Request $request, CustomizationRequest $customizationRequest)
+    public function update(Request $request, string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+
         $user = Auth::guard('portal')->user();
         abort_unless($user->hasPermissionTo('edit_request'), 403, 'Not authorized to edit requests.');
 

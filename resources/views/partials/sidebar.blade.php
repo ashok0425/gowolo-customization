@@ -65,6 +65,35 @@
         </div>
     </li>
 
+    <li class="nav-item nav-item1 {{ request()->routeIs('inbox.messages') ? 'active' : '' }}">
+        <a href="{{ route('inbox.messages') }}" class="link1">
+            <i class="fas fa-envelope"></i>
+            <p>Messages</p>
+            @php
+                $staffUnreadMsgs = \App\Models\PortalNotification::where('notifiable_type', 'staff')
+                    ->where(function ($q) { $q->whereNull('notifiable_id')->orWhere('notifiable_id', Auth::guard('portal')->id()); })
+                    ->where('type', 'new_chat')->where('is_read', false)->count();
+            @endphp
+            @if($staffUnreadMsgs > 0)
+                <span class="badge badge-warning ml-auto">{{ $staffUnreadMsgs }}</span>
+            @endif
+        </a>
+    </li>
+    <li class="nav-item nav-item1 {{ request()->routeIs('inbox.notifications') ? 'active' : '' }}">
+        <a href="{{ route('inbox.notifications') }}" class="link1">
+            <i class="fas fa-bell"></i>
+            <p>Notifications</p>
+            @php
+                $staffUnreadNotifs = \App\Models\PortalNotification::where('notifiable_type', 'staff')
+                    ->where(function ($q) { $q->whereNull('notifiable_id')->orWhere('notifiable_id', Auth::guard('portal')->id()); })
+                    ->where('type', '!=', 'new_chat')->where('is_read', false)->count();
+            @endphp
+            @if($staffUnreadNotifs > 0)
+                <span class="badge badge-warning ml-auto">{{ $staffUnreadNotifs }}</span>
+            @endif
+        </a>
+    </li>
+
     <li class="nav-item nav-item1 {{ request()->routeIs('admin.bug-reports.*') ? 'active' : '' }}">
         <a href="{{ route('admin.bug-reports.index') }}" class="link1">
             <i class="fas fa-bug"></i>
@@ -136,6 +165,34 @@
         <a href="{{ route('user.request.create') }}" class="link1">
             <i class="fas fa-plus-circle"></i>
             <p>New Request</p>
+        </a>
+    </li>
+    <li class="nav-item nav-item1 {{ request()->routeIs('inbox.messages') ? 'active' : '' }}">
+        <a href="{{ route('inbox.messages') }}" class="link1">
+            <i class="fas fa-envelope"></i>
+            <p>Messages</p>
+            @php
+                $userUnreadMsgs = \App\Models\PortalNotification::where('notifiable_type', 'user')
+                    ->where('notifiable_id', session('auth_user.user_id'))
+                    ->where('type', 'new_chat')->where('is_read', false)->count();
+            @endphp
+            @if($userUnreadMsgs > 0)
+                <span class="badge badge-warning ml-auto">{{ $userUnreadMsgs }}</span>
+            @endif
+        </a>
+    </li>
+    <li class="nav-item nav-item1 {{ request()->routeIs('inbox.notifications') ? 'active' : '' }}">
+        <a href="{{ route('inbox.notifications') }}" class="link1">
+            <i class="fas fa-bell"></i>
+            <p>Notifications</p>
+            @php
+                $userUnreadNotifs = \App\Models\PortalNotification::where('notifiable_type', 'user')
+                    ->where('notifiable_id', session('auth_user.user_id'))
+                    ->where('type', '!=', 'new_chat')->where('is_read', false)->count();
+            @endphp
+            @if($userUnreadNotifs > 0)
+                <span class="badge badge-warning ml-auto">{{ $userUnreadNotifs }}</span>
+            @endif
         </a>
     </li>
     <li class="nav-item nav-item1 {{ request()->routeIs('user.bug-report.*') ? 'active' : '' }}">

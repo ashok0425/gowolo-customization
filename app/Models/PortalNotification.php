@@ -30,7 +30,7 @@ class PortalNotification extends Model
             'title'           => 'New Customization Request',
             'body'            => "A new Customization Request has been received from {$request->first_name} {$request->last_name} and is currently waiting for your review.",
             'icon'            => 'fas fa-bell',
-            'action_url'      => route('admin.requests.show', $request->id),
+            'action_url'      => route('admin.requests.show', $request->cuid),
             'action_label'    => 'Review Now',
             'sender_name'     => "{$request->first_name} {$request->last_name}",
             'ref_number'      => $request->ref_number,
@@ -50,8 +50,8 @@ class PortalNotification extends Model
             'body'            => "You have received a new message regarding customization request {$request->ref_number}.",
             'icon'            => 'fas fa-comment',
             'action_url'      => $recipientType === 'staff'
-                                    ? route('admin.requests.chat', $request->id)
-                                    : route('user.chat.show', $request->id),
+                                    ? route('admin.requests.chat', $request->cuid)
+                                    : route('user.chat.show', $request->cuid),
             'action_label'    => 'View Messages',
             'sender_name'     => $senderName,
             'ref_number'      => $request->ref_number,

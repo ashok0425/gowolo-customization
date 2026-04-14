@@ -140,18 +140,29 @@
                                             @endif
                                             <div class="dropdown-divider"></div>
                                             <a class="dropdown-item" href="#" data-toggle="modal" data-target="#statusModal"
-                                               data-id="{{ $req->id }}" data-status="{{ $req->status }}">
+                                               data-cuid="{{ $req->cuid }}" data-status="{{ $req->status }}">
                                                 <i class="fas fa-exchange-alt mr-2 text-warning"></i> Change Status
                                             </a>
                                             @if($canAssign)
                                             <a class="dropdown-item" href="#" data-toggle="modal" data-target="#assignModal"
-                                               data-id="{{ $req->id }}"
+                                               data-cuid="{{ $req->cuid }}"
                                                data-tech1="{{ $req->assigned_tech_id1 }}"
                                                data-tech2="{{ $req->assigned_tech_id2 }}"
                                                data-supervisor="{{ $req->supervisor_id }}"
                                                data-paytype="{{ $req->pay_type }}"
                                                data-amount="{{ $req->pay_amount }}">
                                                 <i class="fas fa-user-plus mr-2 text-success"></i> Assign Technician
+                                            </a>
+                                            @endif
+                                            @if($req->pay_type == 2 && $req->pay_amount > 0)
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item" href="{{ route('documents.quotation', $req->cuid) }}" target="_blank">
+                                                <i class="fas fa-file-pdf mr-2" style="color:#662c87;"></i> Download Quotation
+                                            </a>
+                                            @endif
+                                            @if($req->pay_status == 1)
+                                            <a class="dropdown-item" href="{{ route('documents.invoice', $req->cuid) }}" target="_blank">
+                                                <i class="fas fa-file-invoice mr-2 text-success"></i> Download Invoice
                                             </a>
                                             @endif
                                         </div>
@@ -321,14 +332,14 @@
 // Populate from data-attributes when modal opens
 $('#statusModal').on('show.bs.modal', function(e) {
     var $link = $(e.relatedTarget);
-    $('#statusReqId').val($link.data('id'));
+    $('#statusReqId').val($link.data('cuid'));
     $('#statusSelect').val($link.data('status'));
     $('#statusComments').val('');
 });
 
 function submitStatus() {
-    var reqId = $('#statusReqId').val();
-    $.post('/admin/requests/' + reqId + '/status', {
+    var cuid = $('#statusReqId').val();
+    $.post('/admin/requests/' + cuid + '/status', {
         _token: $('meta[name="csrf-token"]').attr('content'),
         status: $('#statusSelect').val(),
         technician_comments: $('#statusComments').val()
@@ -345,7 +356,7 @@ function submitStatus() {
 // ==================== Assign Technician Modal ====================
 $('#assignModal').on('show.bs.modal', function(e) {
     var $link = $(e.relatedTarget);
-    $('#assignReqId').val($link.data('id'));
+    $('#assignReqId').val($link.data('cuid'));
     $('#assignTech1').val($link.data('tech1') || '');
     $('#assignTech2').val($link.data('tech2') || '');
     $('#assignSupervisor').val($link.data('supervisor') || '');
@@ -361,7 +372,7 @@ $(document).on('change', '#assignPayType', function() {
 });
 
 function submitAssign() {
-    var reqId = $('#assignReqId').val();
+    var cuid = $('#assignReqId').val();
     var payType = $('#assignPayType').val();
     var payAmount = $('#assignAmount').val();
 
@@ -371,7 +382,7 @@ function submitAssign() {
         return;
     }
 
-    $.post('/admin/requests/' + reqId + '/assign', {
+    $.post('/admin/requests/' + cuid + '/assign', {
         _token: $('meta[name="csrf-token"]').attr('content'),
         assigned_tech_id1: $('#assignTech1').val(),
         assigned_tech_id2: $('#assignTech2').val(),

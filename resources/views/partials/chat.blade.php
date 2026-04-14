@@ -377,7 +377,10 @@ $('#addForm').on('submit', function(e) {
     fd.append('reply_to_id', $('#replyToId').val() || '');
     if (file) fd.append('file', file);
 
-    var $btn = $('#addRowButton1').prop('disabled', true);
+    var $btn = $('#addRowButton1');
+    var originalHtml = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Sending...');
+
     $.ajax({
         url: postUrl, type: 'POST', data: fd, processData: false, contentType: false,
         success: function(res) {
@@ -396,9 +399,16 @@ $('#addForm').on('submit', function(e) {
                 $('.custom-file-label').text('Choose file');
                 clearReply();
                 scrollBottom();
+            } else {
+                alert('Failed to send message. Please try again.');
             }
         },
-        complete: function() { $btn.prop('disabled', false); }
+        error: function(xhr) {
+            alert(xhr.responseJSON?.message || 'Failed to send message. Please try again.');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html(originalHtml);
+        }
     });
 });
 

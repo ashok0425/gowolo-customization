@@ -95,6 +95,18 @@
                                             <a class="dropdown-item" href="{{ route('user.chat.show', $req) }}">
                                                 <i class="fas fa-comment mr-2 text-info"></i> Chat
                                             </a>
+                                            @if($req->pay_type == 2 && $req->pay_amount > 0 && $req->pay_status != 1)
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item" href="{{ route('documents.quotation', $req->cuid) }}" target="_blank">
+                                                <i class="fas fa-file-pdf mr-2" style="color:#662c87;"></i> Download Quotation
+                                            </a>
+                                            @endif
+                                            @if($req->pay_status == 1)
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item" href="{{ route('documents.invoice', $req->cuid) }}" target="_blank">
+                                                <i class="fas fa-file-invoice mr-2 text-success"></i> Download Invoice
+                                            </a>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>

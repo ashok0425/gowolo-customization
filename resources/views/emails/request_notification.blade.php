@@ -20,28 +20,36 @@
         <tr>
             <td style="padding:25px 30px;color:#333;font-size:14px;line-height:1.6;">
                 @if($eventType === 'new')
-                    <p>A new customization request has just been submitted.</p>
+                    <p>Hello Team,</p>
+                    <p>A new customization request has just been submitted and is waiting for your review.</p>
                 @else
-                    <p>The status of a customization request has been updated.</p>
+                    <p>Hi {{ $request->first_name }},</p>
+                    <p>Good news — the status of your customization request has been updated.</p>
                     @if($oldStatus && $newStatus)
-                        <p>
+                        <div style="background:#f9f3fc;border-left:4px solid #662c87;padding:12px 16px;margin:15px 0;border-radius:4px;">
                             <strong>Status:</strong>
-                            {{ $oldStatus }} → <strong style="color:#662c87;">{{ $newStatus }}</strong>
-                        </p>
+                            <span style="color:#999;">{{ $oldStatus }}</span>
+                            &nbsp;→&nbsp;
+                            <strong style="color:#662c87;">{{ $newStatus }}</strong>
+                        </div>
                     @endif
                 @endif
 
                 <table cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:15px;">
                     <tr><td style="border-bottom:1px solid #eee;width:35%;color:#777;">Reference</td><td style="border-bottom:1px solid #eee;"><strong>{{ $request->ref_number }}</strong></td></tr>
-                    <tr><td style="border-bottom:1px solid #eee;color:#777;">Customer</td><td style="border-bottom:1px solid #eee;">{{ $request->first_name }} {{ $request->last_name }}</td></tr>
+                    <tr><td style="border-bottom:1px solid #eee;color:#777;">{{ $eventType === 'new' ? 'Customer' : 'Name' }}</td><td style="border-bottom:1px solid #eee;">{{ $request->first_name }} {{ $request->last_name }}</td></tr>
                     <tr><td style="border-bottom:1px solid #eee;color:#777;">Email</td><td style="border-bottom:1px solid #eee;">{{ $request->email }}</td></tr>
                     <tr><td style="border-bottom:1px solid #eee;color:#777;">Phone</td><td style="border-bottom:1px solid #eee;">{{ $request->phone }}</td></tr>
-                    <tr><td style="border-bottom:1px solid #eee;color:#777;">Company</td><td style="border-bottom:1px solid #eee;">{{ $request->company_name }}</td></tr>
+                    <tr><td style="border-bottom:1px solid #eee;color:#777;">Community</td><td style="border-bottom:1px solid #eee;">{{ $request->company_name }}</td></tr>
                     <tr><td style="color:#777;">Submitted</td><td>{{ $request->created_at->format('M d, Y H:i') }}</td></tr>
                 </table>
 
                 @if($request->request_description)
                     <p style="margin-top:15px;"><strong>Description:</strong><br>{{ $request->request_description }}</p>
+                @endif
+
+                @if($eventType !== 'new')
+                    <p style="margin-top:20px;">You can review the current status and chat with our team from your dashboard.</p>
                 @endif
             </td>
         </tr>

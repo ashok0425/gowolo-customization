@@ -14,8 +14,9 @@ class ChatController extends Controller
 {
     public function __construct(private BunnyStorageService $bunny) {}
 
-    public function show(CustomizationRequest $customizationRequest)
+    public function show(string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
         $user   = Auth::guard('portal')->user();
         $seeAll = $user->hasPermissionTo('view_all_requests');
 
@@ -38,8 +39,9 @@ class ChatController extends Controller
         return view('admin.chat.show', compact('customizationRequest', 'chats', 'lastId'));
     }
 
-    public function store(Request $request, CustomizationRequest $customizationRequest)
+    public function store(Request $request, string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
         $user   = Auth::guard('portal')->user();
         $seeAll = $user->hasPermissionTo('view_all_requests');
 

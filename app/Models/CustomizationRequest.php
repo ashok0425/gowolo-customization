@@ -4,12 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class CustomizationRequest extends Model
 {
     use SoftDeletes;
 
+    /**
+     * Auto-generate a ULID (used as the public cuid) on creation.
+     * Lookups by cuid are done explicitly in each controller method.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->cuid)) {
+                $model->cuid = (string) Str::ulid();
+            }
+        });
+    }
+
+    /**
+     * When passed to route() helpers, always serialize as the public cuid,
+     * never the integer id. Controllers still look up by cuid explicitly.
+     */
+    public function getRouteKey()
+    {
+        return $this->cuid;
+    }
+
     protected $fillable = [
+        'cuid', 'request_type',
         'ref_number', 'origin_cust_req_id', 'origin_question_id',
         'user_id', 'user_email', 'user_name',
         'first_name', 'last_name', 'email', 'phone', 'sec_phone',

@@ -62,6 +62,8 @@ class RequestController extends Controller
 
     public function store(Request $request)
     {
+        $isCustomization = $request->input('request_type', 'customization') === 'customization';
+
         // Base validation (always required)
         $rules = [
             'first_name'        => 'required|string|max:100',
@@ -71,13 +73,21 @@ class RequestController extends Controller
             'company_name'      => 'required|string|max:200',
             'company_phone'     => 'required|string|max:200',
             'company_address'   => 'nullable|string',
-            'req_primary_color' => 'required|string|max:20',
-            'req_sec_color'     => 'required|string|max:20',
-            'addition_feature'  => 'required|in:0,1',
+            'request_type'      => 'required|in:customization,graphic_design,web_development,software_development,app_development',
         ];
 
-        // Questionary is only required when "Additional Features = Yes"
-        if ($request->input('addition_feature') == '1') {
+        if ($isCustomization) {
+            // Customization-specific required fields
+            $rules['req_primary_color'] = 'required|string|max:20';
+            $rules['req_sec_color']     = 'required|string|max:20';
+            $rules['addition_feature']  = 'required|in:0,1';
+        } else {
+            // Non-customization: just needs a description
+            $rules['request_description'] = 'required|string|min:10';
+        }
+
+        // Questionary is only required when "Additional Features = Yes" (customization only)
+        if ($isCustomization && $request->input('addition_feature') == '1') {
             $rules = array_merge($rules, [
                 'question_1'    => 'required|string',
                 'question_2'    => 'required|string',
@@ -102,6 +112,7 @@ class RequestController extends Controller
         $refNumber = 'REQ' . date('mY') . ($lastId + 1);
 
         $custRequest = CustomizationRequest::create([
+            'request_type'        => $request->input('request_type', 'customization'),
             'ref_number'          => $refNumber,
             'user_id'             => $ssoUser['user_id'],
             'user_email'          => $ssoUser['email'],
@@ -173,8 +184,9 @@ class RequestController extends Controller
             ->with('success', 'Request submitted successfully! Reference: ' . $custRequest->ref_number);
     }
 
-    public function show(CustomizationRequest $customizationRequest)
+    public function show(string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
         $this->authorizeSsoUser($customizationRequest);
         $customizationRequest->load(['answers', 'files', 'primaryTechnician']);
 
@@ -185,8 +197,9 @@ class RequestController extends Controller
      * Edit form — customer can edit their own request only while it's
      * still Pending (0) or Assigned (1). Once a technician starts, it's locked.
      */
-    public function edit(CustomizationRequest $customizationRequest)
+    public function edit(string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
         $this->authorizeSsoUser($customizationRequest);
 
         abort_unless(
@@ -202,8 +215,9 @@ class RequestController extends Controller
     /**
      * Persist edits, log changes via spatie activitylog.
      */
-    public function update(Request $request, CustomizationRequest $customizationRequest)
+    public function update(Request $request, string $cuid)
     {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
         $this->authorizeSsoUser($customizationRequest);
 
         abort_unless(

@@ -98,22 +98,42 @@
 
     <div class="col-md-4">
         {{-- Payment --}}
+        @php
+            $payBase = rtrim(config('services.dashboardv2.make_payment_url'), '/');
+            $uid     = base64_encode(session('auth_user.email') ?? $customizationRequest->email);
+            $paymentUrl = $payBase . '?uid=' . $uid . '&type=custom&id=' . $customizationRequest->id;
+        @endphp
         <div class="card">
             <div class="card-header"><h4 class="card-title">Payment</h4></div>
             <div class="card-body text-center">
                 @if($customizationRequest->pay_type == 1)
                     <i class="fas fa-gift fa-3x text-success mb-2 d-block"></i>
                     <p class="mb-0">This is a <strong>Free</strong> customization.</p>
-                @elseif($customizationRequest->pay_status)
+                @elseif($customizationRequest->pay_status == 1)
                     <i class="fas fa-check-circle fa-3x text-success mb-2 d-block"></i>
                     <p class="mb-0">Payment <strong>Received</strong></p>
                     <p class="text-muted">${{ number_format($customizationRequest->pay_amount, 2) }}</p>
+                    <a href="{{ route('documents.invoice', $customizationRequest->cuid) }}"
+                       class="btn btn-block btn-outline-success mt-2" target="_blank">
+                        <i class="fas fa-file-download mr-1"></i> Download Invoice
+                    </a>
+                @elseif($customizationRequest->pay_type == 2 && !empty($customizationRequest->pay_amount))
+                    <i class="fas fa-credit-card fa-3x text-primary mb-2 d-block" style="color:#662c87!important;"></i>
+                    <p class="mb-1">Amount Due</p>
+                    <h3 class="font-weight-bold mb-3" style="color:#662c87;">${{ number_format($customizationRequest->pay_amount, 2) }}</h3>
+                    <a href="{{ $paymentUrl }}" target="_blank" class="btn btn-block"
+                       style="background:#662c87;color:#fff;border-radius:50px;padding:10px 20px;font-weight:600;">
+                        <i class="fas fa-credit-card mr-2"></i> Pay Now
+                    </a>
+                    <a href="{{ route('documents.quotation', $customizationRequest->cuid) }}"
+                       class="btn btn-block btn-outline-secondary mt-2" target="_blank">
+                        <i class="fas fa-file-pdf mr-1"></i> Download Quotation
+                    </a>
+                    <small class="text-muted d-block mt-2">You'll be redirected to our secure payment gateway.</small>
                 @else
-                    <i class="fas fa-exclamation-circle fa-3x text-warning mb-2 d-block"></i>
-                    <p class="mb-0">Payment <strong>Pending</strong></p>
-                    @if($customizationRequest->pay_amount > 0)
-                    <p class="text-muted">${{ number_format($customizationRequest->pay_amount, 2) }}</p>
-                    @endif
+                    <i class="fas fa-clock fa-3x text-warning mb-2 d-block"></i>
+                    <p class="mb-0">Awaiting Price</p>
+                    <small class="text-muted">Our team will set the price shortly.</small>
                 @endif
             </div>
         </div>

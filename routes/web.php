@@ -36,18 +36,18 @@ Route::middleware('portal.auth')->prefix('admin')->name('admin.')->group(functio
     Route::get('/profile/password',  [Admin\ProfileController::class, 'editPassword'])->name('profile.password');
     Route::post('/profile/password', [Admin\ProfileController::class, 'updatePassword'])->name('profile.password.update');
 
-    // Requests — fine-grained auth handled in controller
-    Route::get('/requests',                                [Admin\RequestController::class, 'index'])->name('requests.index');
-    Route::get('/requests/{customizationRequest}',         [Admin\RequestController::class, 'show'])->name('requests.show');
-    Route::get('/requests/{customizationRequest}/edit',    [Admin\RequestController::class, 'edit'])->name('requests.edit');
-    Route::put('/requests/{customizationRequest}',         [Admin\RequestController::class, 'update'])->name('requests.update');
-    Route::post('/requests/{customizationRequest}/assign', [Admin\RequestController::class, 'assign'])->name('requests.assign');
-    Route::post('/requests/{customizationRequest}/status', [Admin\RequestController::class, 'updateStatus'])->name('requests.status');
-    Route::get('/requests/{customizationRequest}/logs',    [Admin\RequestController::class, 'logs'])->name('requests.logs');
+    // Requests — look up explicitly by cuid in each controller method
+    Route::get('/requests',                 [Admin\RequestController::class, 'index'])->name('requests.index');
+    Route::get('/requests/{cuid}',          [Admin\RequestController::class, 'show'])->name('requests.show');
+    Route::get('/requests/{cuid}/edit',     [Admin\RequestController::class, 'edit'])->name('requests.edit');
+    Route::put('/requests/{cuid}',          [Admin\RequestController::class, 'update'])->name('requests.update');
+    Route::post('/requests/{cuid}/assign',  [Admin\RequestController::class, 'assign'])->name('requests.assign');
+    Route::post('/requests/{cuid}/status',  [Admin\RequestController::class, 'updateStatus'])->name('requests.status');
+    Route::get('/requests/{cuid}/logs',     [Admin\RequestController::class, 'logs'])->name('requests.logs');
 
     // Chat
-    Route::get('/requests/{customizationRequest}/chat',  [Admin\ChatController::class, 'show'])->name('requests.chat');
-    Route::post('/requests/{customizationRequest}/chat', [Admin\ChatController::class, 'store'])->name('requests.chat.store');
+    Route::get('/requests/{cuid}/chat',   [Admin\ChatController::class, 'show'])->name('requests.chat');
+    Route::post('/requests/{cuid}/chat',  [Admin\ChatController::class, 'store'])->name('requests.chat.store');
 
     // Bug reports
     Route::get('/bug-reports',              [Admin\BugReportController::class, 'index'])->name('bug-reports.index');
@@ -76,11 +76,11 @@ Route::middleware('sso.auth')->prefix('request')->name('user.')->group(function 
     Route::get('/bug-report',       [User\BugReportController::class, 'create'])->name('bug-report.create');
     Route::post('/bug-report',      [User\BugReportController::class, 'store'])->name('bug-report.store');
 
-    Route::get('/{customizationRequest}/edit',   [User\RequestController::class, 'edit'])->name('request.edit');
-    Route::put('/{customizationRequest}',        [User\RequestController::class, 'update'])->name('request.update');
-    Route::get('/{customizationRequest}',        [User\RequestController::class, 'show'])->name('request.show');
-    Route::get('/{customizationRequest}/chat',   [User\ChatController::class, 'show'])->name('chat.show');
-    Route::post('/{customizationRequest}/chat',  [User\ChatController::class, 'store'])->name('chat.store');
+    Route::get('/{cuid}/edit',   [User\RequestController::class, 'edit'])->name('request.edit');
+    Route::put('/{cuid}',        [User\RequestController::class, 'update'])->name('request.update');
+    Route::get('/{cuid}',        [User\RequestController::class, 'show'])->name('request.show');
+    Route::get('/{cuid}/chat',   [User\ChatController::class, 'show'])->name('chat.show');
+    Route::post('/{cuid}/chat',  [User\ChatController::class, 'store'])->name('chat.store');
 });
 
 // Chat polling API
@@ -90,3 +90,12 @@ Route::get('/api/chat/{requestId}/poll', [ChatPollController::class, 'poll'])->n
 Route::get('/api/notifications',              [App\Http\Controllers\Api\NotificationController::class, 'index'])->name('api.notifications');
 Route::post('/api/notifications/{notification}/dismiss', [App\Http\Controllers\Api\NotificationController::class, 'dismiss'])->name('api.notifications.dismiss');
 Route::post('/api/notifications/clear',       [App\Http\Controllers\Api\NotificationController::class, 'clearAll'])->name('api.notifications.clear');
+
+// Inbox pages — Messages and Notifications tabs (works for both portal staff and SSO users)
+Route::get('/inbox/messages',      [\App\Http\Controllers\NotificationPageController::class, 'messages'])->name('inbox.messages');
+Route::get('/inbox/notifications', [\App\Http\Controllers\NotificationPageController::class, 'notifications'])->name('inbox.notifications');
+Route::get('/inbox/{notification}', [\App\Http\Controllers\NotificationPageController::class, 'markRead'])->name('inbox.read');
+
+// PDF documents — quotation (after price set) and invoice (after payment)
+Route::get('/documents/quotation/{cuid}', [\App\Http\Controllers\DocumentController::class, 'quotation'])->name('documents.quotation');
+Route::get('/documents/invoice/{cuid}',   [\App\Http\Controllers\DocumentController::class, 'invoice'])->name('documents.invoice');

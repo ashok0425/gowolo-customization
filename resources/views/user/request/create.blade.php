@@ -151,7 +151,7 @@
 
 @section('content')
 <div class="page-header">
-    <h4 class="page-title">Customization Request Form</h4>
+    <h4 class="page-title">Request Form</h4>
     <ul class="breadcrumbs">
         <li class="nav-home"><a href="{{ route('user.dashboard') }}"><i class="flaticon-home"></i></a></li>
         <li class="separator"><i class="flaticon-right-arrow"></i></li>
@@ -226,76 +226,105 @@
                     </div>
                 </div>
 
-                {{-- ============== What are you requesting? ============== --}}
-                <h5 class="section-heading">I'm Requesting For</h5>
+                {{-- ============== Request Type ============== --}}
+                <h5 class="section-heading">What are you requesting?</h5>
                 <div class="row">
-                    <div class="col-sm-12">
-                        @foreach([
-                            'req_logo'           => 'Logo',
-                            'req_icon'           => 'Web Icon',
-                            'req_app_background' => 'App Background Image',
-                            'req_landing_page'   => 'Landing Page',
-                            'req_others'         => 'Others',
-                        ] as $field => $label)
-                        <div class="req-checkbox">
-                            <input type="checkbox" name="{{ $field }}" id="{{ $field }}" value="1" {{ old($field) ? 'checked' : '' }}>
-                            <label for="{{ $field }}">{{ $label }}</label>
-                        </div>
-                        @endforeach
-                    </div>
-
                     <div class="col-md-6 form-group">
-                        <label class="f-15">Primary Color <small class="text-muted">(eg: 000000)</small> <span class="text-danger">*</span></label>
-                        <input type="text" name="req_primary_color" class="input_box" value="{{ old('req_primary_color') }}" placeholder="Primary Color" required>
-                        <div class="field-error">Primary Color is required</div>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label class="f-15">Secondary Color <small class="text-muted">(eg: 000000)</small> <span class="text-danger">*</span></label>
-                        <input type="text" name="req_sec_color" class="input_box" value="{{ old('req_sec_color') }}" placeholder="Secondary Color" required>
-                        <div class="field-error">Secondary Color is required</div>
-                    </div>
-
-                    <div class="col-sm-12 form-group" id="descriptionGroup" style="display:none;">
-                        <label class="f-15">Request Description <span class="text-danger">*</span></label>
-                        <textarea name="request_description" class="input_box" rows="6" placeholder="Describe your customization needs...">{{ old('request_description') }}</textarea>
+                        <label class="f-15">Request Type <span class="text-danger">*</span></label>
+                        <select name="request_type" id="requestType" class="input_box" required>
+                            <option value="customization" {{ old('request_type', 'customization') == 'customization' ? 'selected' : '' }}>Customization</option>
+                            <option value="graphic_design" {{ old('request_type') == 'graphic_design' ? 'selected' : '' }}>Graphic Design</option>
+                            <option value="web_development" {{ old('request_type') == 'web_development' ? 'selected' : '' }}>Web Development</option>
+                            <option value="software_development" {{ old('request_type') == 'software_development' ? 'selected' : '' }}>Software Development</option>
+                            <option value="app_development" {{ old('request_type') == 'app_development' ? 'selected' : '' }}>App Development</option>
+                        </select>
                     </div>
                 </div>
 
-                {{-- ============== File Uploads ============== --}}
-                <h5 class="section-heading">Upload Files</h5>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="upload-thumb" onclick="document.getElementById('logoFile').click()">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <div class="hint">Click to upload</div>
-                            <div class="size-hint">Size: 200x60</div>
-                            <img class="preview d-none" id="logoPreview">
+                {{-- ============== Customization-specific section (logos, icons, colors, checkboxes) ============== --}}
+                <div id="customizationSection">
+                    <h5 class="section-heading">I'm Requesting For</h5>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            @foreach([
+                                'req_logo'           => 'Logo',
+                                'req_icon'           => 'Web Icon',
+                                'req_app_background' => 'App Background Image',
+                                'req_landing_page'   => 'Landing Page',
+                                'req_others'         => 'Others',
+                            ] as $field => $label)
+                            <div class="req-checkbox">
+                                <input type="checkbox" name="{{ $field }}" id="{{ $field }}" value="1" {{ old($field) ? 'checked' : '' }}>
+                                <label for="{{ $field }}">{{ $label }}</label>
+                            </div>
+                            @endforeach
                         </div>
-                        <span class="upload-label">Entity Logo</span>
-                        <input type="file" name="logo" id="logoFile" class="d-none" accept="image/jpeg,image/png,image/webp" onchange="previewImg(this,'logoPreview')">
+
+                        <div class="col-md-6 form-group">
+                            <label class="f-15">Primary Color <small class="text-muted">(eg: 000000)</small> <span class="text-danger">*</span></label>
+                            <input type="text" name="req_primary_color" class="input_box req-type-customization" value="{{ old('req_primary_color') }}" placeholder="Primary Color" required>
+                            <div class="field-error">Primary Color is required</div>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="f-15">Secondary Color <small class="text-muted">(eg: 000000)</small> <span class="text-danger">*</span></label>
+                            <input type="text" name="req_sec_color" class="input_box req-type-customization" value="{{ old('req_sec_color') }}" placeholder="Secondary Color" required>
+                            <div class="field-error">Secondary Color is required</div>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="upload-thumb" onclick="document.getElementById('iconFile').click()">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <div class="hint">Click to upload</div>
-                            <div class="size-hint">Size: 60x60</div>
-                            <img class="preview d-none" id="iconPreview">
+
+                    {{-- File Uploads (only for Customization) --}}
+                    <h5 class="section-heading">Upload Files</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="upload-thumb" onclick="document.getElementById('logoFile').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div class="hint">Click to upload</div>
+                                <div class="size-hint">Size: 200x60</div>
+                                <img class="preview d-none" id="logoPreview">
+                            </div>
+                            <span class="upload-label">Entity Logo</span>
+                            <input type="file" name="logo" id="logoFile" class="d-none" accept="image/jpeg,image/png,image/webp" onchange="previewImg(this,'logoPreview')">
                         </div>
-                        <span class="upload-label">Web Icon</span>
-                        <input type="file" name="icon" id="iconFile" class="d-none" accept="image/jpeg,image/png,image/webp" onchange="previewImg(this,'iconPreview')">
+                        <div class="col-md-4">
+                            <div class="upload-thumb" onclick="document.getElementById('iconFile').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div class="hint">Click to upload</div>
+                                <div class="size-hint">Size: 60x60</div>
+                                <img class="preview d-none" id="iconPreview">
+                            </div>
+                            <span class="upload-label">Web Icon</span>
+                            <input type="file" name="icon" id="iconFile" class="d-none" accept="image/jpeg,image/png,image/webp" onchange="previewImg(this,'iconPreview')">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="upload-thumb" onclick="document.getElementById('bgFile').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div class="hint">Click to upload</div>
+                                <div class="size-hint">Size: 375x800</div>
+                                <img class="preview d-none" id="bgPreview">
+                            </div>
+                            <span class="upload-label">App Login Background</span>
+                            <input type="file" name="app_background" id="bgFile" class="d-none" accept="image/jpeg,image/png,image/webp" onchange="previewImg(this,'bgPreview')">
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="upload-thumb" onclick="document.getElementById('bgFile').click()">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <div class="hint">Click to upload</div>
-                            <div class="size-hint">Size: 375x800</div>
-                            <img class="preview d-none" id="bgPreview">
-                        </div>
-                        <span class="upload-label">App Login Background</span>
-                        <input type="file" name="app_background" id="bgFile" class="d-none" accept="image/jpeg,image/png,image/webp" onchange="previewImg(this,'bgPreview')">
+                </div>
+                {{-- End customization-specific section --}}
+
+                {{-- ============== Description (shown for non-customization types) ============== --}}
+                <div id="genericDescriptionSection" style="display:none;">
+                    <h5 class="section-heading">Project Details</h5>
+                    <div class="form-group">
+                        <label class="f-15">Describe your project <span class="text-danger">*</span></label>
+                        <textarea name="request_description" id="genericDescription" class="input_box" rows="8" placeholder="Tell us what you need — goals, timeline, features, references...">{{ old('request_description') }}</textarea>
                     </div>
                 </div>
 
+                {{-- Description for customization "Others" (unchanged) --}}
+                <div class="form-group" id="descriptionGroup" style="display:none;">
+                    <label class="f-15">Request Description <span class="text-danger">*</span></label>
+                    <textarea name="request_description_customization" class="input_box" rows="6" placeholder="Describe your customization needs...">{{ old('request_description_customization') }}</textarea>
+                </div>
+
+                {{-- ============== Common uploads + additional features (shown for all types) ============== --}}
                 <div class="row mt-3">
                     <div class="col-sm-12 form-group">
                         <label class="f-15">Upload Document</label>
@@ -311,7 +340,7 @@
                         </div>
                         <ul class="additional-files-list" id="additionalFilesList"></ul>
                     </div>
-                    <div class="col-sm-12 form-group">
+                    <div class="col-sm-12 form-group" id="additionalFeaturesGroup">
                         <label class="f-15">Additional Features <span class="text-danger">*</span></label>
                         <div class="radio-row">
                             <label class="radio-pill"><input type="radio" name="addition_feature" value="1" {{ old('addition_feature') == '1' ? 'checked' : '' }}> Yes</label>
@@ -482,6 +511,37 @@ function validateField($el) {
 
 // Show description when "Others" is checked
 $('#req_others').on('change', function() { $('#descriptionGroup').toggle(this.checked); });
+
+// ==================== Request Type toggle ====================
+function toggleRequestType() {
+    var type = $('#requestType').val();
+    var isCustomization = (type === 'customization');
+
+    $('#customizationSection').toggle(isCustomization);
+    $('#genericDescriptionSection').toggle(!isCustomization);
+    $('#additionalFeaturesGroup').toggle(isCustomization);
+
+    // Toggle required attribute on customization-only fields
+    $('.req-type-customization').each(function() {
+        if (isCustomization) {
+            if ($(this).data('was-required')) $(this).attr('required', true);
+        } else {
+            if ($(this).attr('required')) {
+                $(this).data('was-required', true);
+                $(this).removeAttr('required');
+            }
+        }
+    });
+
+    // Generic description is required for non-customization types
+    if (!isCustomization) {
+        $('#genericDescription').attr('required', true);
+    } else {
+        $('#genericDescription').removeAttr('required');
+    }
+}
+$('#requestType').on('change', toggleRequestType);
+$(function() { toggleRequestType(); });
 
 // Button text toggle based on Additional Features selection
 function updatePhase1ButtonText() {
