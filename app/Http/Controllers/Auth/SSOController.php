@@ -49,6 +49,24 @@ class SSOController extends Controller
         }
     }
 
+    /**
+     * Generate a token and redirect the SSO user back to the dashboard.
+     * GET /auth/dashboard-redirect
+     */
+    public function dashboardRedirect()
+    {
+        $ssoUser = session('auth_user');
+
+        if (!$ssoUser) {
+            return redirect()->route('user.login');
+        }
+
+        $token       = $this->sso->generateToken($ssoUser['user_id']);
+        $dashboardUrl = rtrim(env('DASHBOARD_URL', 'https://dashboard.gowologlobal.com'), '/');
+
+        return redirect($dashboardUrl . '/auth/sso-return?token=' . $token);
+    }
+
     public function logout()
     {
         session()->forget('auth_user');

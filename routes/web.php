@@ -25,6 +25,7 @@ Route::post('/portal/logout', [PortalLoginController::class, 'logout'])->name('p
 // SSO — called by dashboardv2 redirect
 Route::get('/auth/sso', [SSOController::class, 'handle'])->name('sso.handle');
 Route::post('/auth/sso/logout', [SSOController::class, 'logout'])->name('sso.logout');
+Route::get('/auth/dashboard-redirect', [SSOController::class, 'dashboardRedirect'])->name('sso.dashboard-redirect');
 
 // Portal routes — permission-based, all authenticated portal users
 Route::middleware('portal.auth')->prefix('admin')->name('admin.')->group(function () {
