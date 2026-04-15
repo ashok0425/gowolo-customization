@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\SSOTokenService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SSOController extends Controller
 {
@@ -25,6 +26,11 @@ class SSOController extends Controller
 
         try {
             $user = $this->sso->decodeAndLogin($token);
+
+            // Clear any active portal (admin/tech) session to prevent dual menus
+            if (Auth::guard('portal')->check()) {
+                Auth::guard('portal')->logout();
+            }
 
             session([
                 'auth_user' => [
