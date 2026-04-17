@@ -237,6 +237,7 @@
                             <option value="web_development" {{ old('request_type') == 'web_development' ? 'selected' : '' }}>Web Development</option>
                             <option value="software_development" {{ old('request_type') == 'software_development' ? 'selected' : '' }}>Software Development</option>
                             <option value="app_development" {{ old('request_type') == 'app_development' ? 'selected' : '' }}>App Development</option>
+                            <option value="gift_monetization_session" {{ old('request_type') == 'gift_monetization_session' ? 'selected' : '' }}>Gift &amp; Monetization Session</option>
                         </select>
                     </div>
                 </div>

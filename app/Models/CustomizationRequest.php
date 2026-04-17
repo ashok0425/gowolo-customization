@@ -76,6 +76,8 @@ class CustomizationRequest extends Model
     const STATUS_SENT_FOR_REVIEW = 3;
     const STATUS_APPROVED        = 4;
     const STATUS_COMPLETED       = 5;
+    const STATUS_CLIENT_APPROVED = 6;
+    const STATUS_TEAM_APPROVED   = 7;
 
     // Backward-compatible alias
     const STATUS_NEW         = 0;
@@ -91,6 +93,8 @@ class CustomizationRequest extends Model
             self::STATUS_ASSIGNED        => 'Assigned',
             self::STATUS_IN_REVIEW       => 'In Review',
             self::STATUS_SENT_FOR_REVIEW => 'Sent for Review',
+            self::STATUS_CLIENT_APPROVED => 'Client Approved',
+            self::STATUS_TEAM_APPROVED   => 'Approved by Team',
             self::STATUS_APPROVED        => 'Approved',
             self::STATUS_COMPLETED       => 'Completed',
         ];
@@ -109,6 +113,8 @@ class CustomizationRequest extends Model
             self::STATUS_ASSIGNED        => 'badge-info',
             self::STATUS_IN_REVIEW       => 'badge-primary',
             self::STATUS_SENT_FOR_REVIEW => 'badge-secondary',
+            self::STATUS_CLIENT_APPROVED => 'badge-success',
+            self::STATUS_TEAM_APPROVED   => 'badge-success',
             self::STATUS_APPROVED        => 'badge-success',
             self::STATUS_COMPLETED       => 'badge-dark',
             default                      => 'badge-light',

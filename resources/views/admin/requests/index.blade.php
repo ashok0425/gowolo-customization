@@ -209,7 +209,8 @@
                                 <select class="form-control form-control-lg" id="statusSelect">
                                     @if($seeAll)
                                         @foreach($statuses as $val => $label)
-                                        <option value="{{ $val }}">{{ $label }}</option>
+                                        {{-- "Approved" (4) is only selectable once the request is already "Approved by Team" (7) --}}
+                                        <option value="{{ $val }}" {{ $val == 4 ? 'data-requires-team="1"' : '' }}>{{ $label }}</option>
                                         @endforeach
                                     @else
                                         <option value="2">In Review</option>
@@ -332,9 +333,25 @@
 // Populate from data-attributes when modal opens
 $('#statusModal').on('show.bs.modal', function(e) {
     var $link = $(e.relatedTarget);
+    var currentStatus = parseInt($link.data('status'), 10);
+
     $('#statusReqId').val($link.data('cuid'));
-    $('#statusSelect').val($link.data('status'));
     $('#statusComments').val('');
+
+    // "Approved" (4) option is only selectable when current status is
+    // "Approved by Team" (7). Hide it otherwise.
+    $('#statusSelect option').each(function() {
+        var val = parseInt($(this).val(), 10);
+        if (val === 4) {
+            if (currentStatus === 7) {
+                $(this).prop('hidden', false).prop('disabled', false);
+            } else {
+                $(this).prop('hidden', true).prop('disabled', true);
+            }
+        }
+    });
+
+    $('#statusSelect').val(currentStatus);
 });
 
 function submitStatus() {

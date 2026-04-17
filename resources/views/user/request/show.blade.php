@@ -24,6 +24,8 @@
                 3 => ['border' => 'border-secondary', 'icon' => 'fa-paper-plane text-secondary',  'msg' => 'We have sent the work to you for review. Please check and respond.'],
                 4 => ['border' => 'border-success',   'icon' => 'fa-thumbs-up text-success',      'msg' => 'The customization has been approved and is being finalized.'],
                 5 => ['border' => 'border-dark',      'icon' => 'fa-check-circle text-dark',      'msg' => 'Your customization is complete! Delivered on ' . ($customizationRequest->date_complete?->format('M d, Y') ?? '—') . '.'],
+                6 => ['border' => 'border-success',   'icon' => 'fa-user-check text-success',     'msg' => 'You have approved this customization. Our team will finalize and deliver it.'],
+                7 => ['border' => 'border-success',   'icon' => 'fa-users text-success',          'msg' => 'Our team has approved the work. Finalizing delivery shortly.'],
             ];
             $sc = $statusConfig[$customizationRequest->status] ?? $statusConfig[0];
         @endphp

@@ -73,7 +73,7 @@ class RequestController extends Controller
             'company_name'      => 'required|string|max:200',
             'company_phone'     => 'required|string|max:200',
             'company_address'   => 'nullable|string',
-            'request_type'      => 'required|in:customization,graphic_design,web_development,software_development,app_development',
+            'request_type'      => 'required|in:customization,graphic_design,web_development,software_development,app_development,gift_monetization_session',
         ];
 
         if ($isCustomization) {

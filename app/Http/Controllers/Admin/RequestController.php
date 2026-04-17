@@ -162,7 +162,16 @@ class RequestController extends Controller
             // Restricted users: In Review or Sent for Review only
             $request->validate(['status' => 'required|in:2,3']);
         } else {
-            $request->validate(['status' => 'required|in:0,1,2,3,4,5']);
+            $request->validate(['status' => 'required|in:0,1,2,3,4,5,6,7']);
+        }
+
+        // Guard: "Approved" (4) can only be set when current status is "Approved by Team" (7)
+        if ((int) $request->status === CustomizationRequest::STATUS_APPROVED
+            && $customizationRequest->status !== CustomizationRequest::STATUS_TEAM_APPROVED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Request must be "Approved by Team" before it can be marked as Approved.',
+            ], 422);
         }
 
         $oldStatus = $customizationRequest->status;
