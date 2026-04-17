@@ -40,6 +40,9 @@ class PortalLoginController extends Controller
             return back()->withErrors(['email' => 'Your account is deactivated.'])->withInput();
         }
 
+        // Clear any active SSO session to prevent dual menus
+        session()->forget('auth_user');
+
         Auth::guard('portal')->login($user, $request->boolean('remember'));
 
         activity('customization')

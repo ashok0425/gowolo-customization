@@ -22,7 +22,7 @@ return new class extends Migration
 
             // Who should see this notification
             $table->unsignedBigInteger('notifiable_id')->nullable();  // portal_user id (null = all staff)
-            $table->string('notifiable_type')->default('staff');      // 'staff' or 'user'
+            $table->string('notifiable_type', 191)->default('staff');      // 'staff' or 'user'
 
             $table->boolean('is_read')->default(false);
             $table->timestamp('read_at')->nullable();

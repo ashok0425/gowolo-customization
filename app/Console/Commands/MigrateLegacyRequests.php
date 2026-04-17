@@ -122,9 +122,9 @@ class MigrateLegacyRequests extends Command
 
                     // Status + payment
                     'status'              => $statusMap[$row->cust_status] ?? CustomizationRequest::STATUS_PENDING,
-                    'pay_type'            => $row->cust_pay_type,
+                    'pay_type'            => $row->cust_pay_type ?? 1,       // default free
                     'pay_amount'          => $row->cust_amount ?? 0,
-                    'pay_status'          => $row->cust_pay_status,
+                    'pay_status'          => $row->cust_pay_status ?? 0,     // default unpaid
                     'pay_id'              => $row->cust_pay_id,
                     'paid_at'             => $row->cust_paid_date,
 
@@ -152,7 +152,9 @@ class MigrateLegacyRequests extends Command
                     continue;
                 }
 
-                $newRequest = CustomizationRequest::create($data);
+                // Use forceCreate so created_at/updated_at from legacy data
+                // are preserved instead of being overwritten with now()
+                $newRequest = CustomizationRequest::forceCreate($data);
 
                 // Migrate related customization_questions (questionnaire answers)
                 $questions = DB::connection('dashboard_db')
@@ -243,7 +245,7 @@ class MigrateLegacyRequests extends Command
                         $originalName = basename($chat->file);
                     }
 
-                    CustomizationChat::create([
+                    CustomizationChat::forceCreate([
                         'request_id'        => $newRequest->id,
                         'sender_type'       => $senderType,
                         'sender_id'         => $chat->user_id,
@@ -269,14 +271,14 @@ class MigrateLegacyRequests extends Command
                     ->get();
 
                 foreach ($legacyFiles as $file) {
-                    CustomizationFile::create([
+                    CustomizationFile::forceCreate([
                         'request_id'       => $newRequest->id,
                         'uploaded_by_type' => 'user',
                         'uploaded_by_id'   => $file->user_id,
                         'file_category'    => 'attachment',
                         'original_name'    => $file->name ?: basename($file->files ?? ''),
                         'extension'        => $file->extension,
-                        'size_bytes'       => $file->size ?: 0,
+                        'size_bytes'       => $this->parseSizeBytes($file->size),
                         'local_path'       => $file->files,
                         'bunny_path'       => null,
                         'bunny_synced'     => false,
@@ -306,5 +308,25 @@ class MigrateLegacyRequests extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    private function parseSizeBytes($size): int
+    {
+        if (is_null($size) || $size === '') return 0;
+        if (is_numeric($size)) return (int) $size;
+
+        // Parse strings like "297.99 KB", "1.5 MB", etc.
+        if (preg_match('/^([\d.]+)\s*(KB|MB|GB|B)?$/i', trim($size), $m)) {
+            $val  = (float) $m[1];
+            $unit = strtoupper($m[2] ?? 'B');
+            return (int) match ($unit) {
+                'KB' => $val * 1024,
+                'MB' => $val * 1024 * 1024,
+                'GB' => $val * 1024 * 1024 * 1024,
+                default => $val,
+            };
+        }
+
+        return 0;
     }
 }

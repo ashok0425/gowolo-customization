@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,5 +26,6 @@ class AppServiceProvider extends ServiceProvider
         // key-length limit). Cap the default string length to 191 so
         // VARCHAR(191) × 4 = 764 bytes fits under the limit.
         Schema::defaultStringLength(191);
+        Paginator::useBootstrap();
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\SSOTokenService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SSOController extends Controller
 {
@@ -25,6 +26,11 @@ class SSOController extends Controller
 
         try {
             $user = $this->sso->decodeAndLogin($token);
+
+            // Clear any active portal (admin/tech) session to prevent dual menus
+            if (Auth::guard('portal')->check()) {
+                Auth::guard('portal')->logout();
+            }
 
             session([
                 'auth_user' => [
@@ -47,6 +53,24 @@ class SSOController extends Controller
             return redirect()->route('portal.login')
                 ->with('error', 'Access link expired or invalid. Please try again from your dashboard.');
         }
+    }
+
+    /**
+     * Generate a token and redirect the SSO user back to the dashboard.
+     * GET /auth/dashboard-redirect
+     */
+    public function dashboardRedirect()
+    {
+        $ssoUser = session('auth_user');
+
+        if (!$ssoUser) {
+            return redirect()->route('user.login');
+        }
+
+        $token       = $this->sso->generateToken($ssoUser['user_id']);
+        $dashboardUrl = rtrim(env('DASHBOARD_URL', 'https://dashboard.gowologlobal.com'), '/');
+
+        return redirect($dashboardUrl . '/auth/sso-return?token=' . $token);
     }
 
     public function logout()

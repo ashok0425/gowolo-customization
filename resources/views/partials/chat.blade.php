@@ -57,7 +57,8 @@
     .chat-bubble ul, .chat-bubble ol { margin-bottom: 0; padding-left: 18px; }
 
     /* Image / file inside bubbles */
-    .imgfile img { height: auto; width: 50%; border-radius: 0 !important; padding: 10px; cursor: pointer; }
+    .imgfile img { height: auto; max-width: 180px; border-radius: 6px !important; padding: 4px; cursor: pointer; transition: opacity 0.2s; }
+    .imgfile img:hover { opacity: 0.85; }
     .pdf_file { display: inline-block; }
     .pdf_view { position: relative; }
 
@@ -95,31 +96,37 @@
         cursor: pointer;
     }
 
-    /* Reply button next to each message */
+    /* Reply button — centered on top of each bubble */
+    .chat-bubble { position: relative; }
     .reply-inline {
-        display: inline-flex;
+        display: none;
         align-items: center;
         gap: 4px;
         background: #fff;
         border: 1px solid #e0e0e0;
         border-radius: 20px;
-        padding: 4px 12px;
-        font-size: 11px;
+        padding: 2px 10px;
+        font-size: 10px;
         color: #666;
         cursor: pointer;
-        margin: 4px;
         text-decoration: none;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         transition: all 0.15s;
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        white-space: nowrap;
     }
+    .message:hover .reply-inline { display: inline-flex; }
     .reply-inline:hover {
         background: #f9f3fc;
         color: #662c87;
         border-color: #662c87;
         text-decoration: none;
     }
-    .reply-inline i { font-size: 10px; }
-    .message .reply-inline { vertical-align: middle; }
+    .reply-inline i { font-size: 9px; }
 
     /* Bootstrap custom file input override */
     .custom-file-label::after { content: "Browse"; }
@@ -173,6 +180,10 @@
             @endif
 
             <div class="{{ $isMine ? 'sent' : 'received' }} chat-bubble">
+                <a href="#" class="reply-inline reply-btn" data-id="{{ $chat->id }}" data-sender="{{ $chat->sender_name }}" data-text="{{ Str::limit(strip_tags($chat->message), 50) }}">
+                    <i class="fas fa-reply"></i> Reply
+                </a>
+
                 @if($chat->reply_to_id && $chat->replyTo)
                 <div class="reply-ref"><strong>{{ $chat->replyTo->sender_name }}</strong>: {{ Str::limit(strip_tags($chat->replyTo->message), 40) }}</div>
                 @endif
@@ -182,7 +193,7 @@
                 @endif
 
                 @if($chat->file_type === 'image' && $fileUrl)
-                    <a href="#" data-toggle="modal" data-id="{{ $fileUrl }}" class="imgfile">
+                    <a href="{{ $fileUrl }}" target="_blank" class="imgfile">
                         <img src="{{ $fileUrl }}" alt="">
                     </a>
                 @elseif($chat->file_type === 'pdf' && $fileUrl)
@@ -203,10 +214,6 @@
                     {{ $chat->created_at->format('m/d/Y h:i:A') }}
                 </div>
             </div>
-
-            <a href="#" class="reply-inline reply-btn" data-id="{{ $chat->id }}" data-sender="{{ $chat->sender_name }}" data-text="{{ Str::limit(strip_tags($chat->message), 50) }}">
-                <i class="fas fa-reply"></i> Reply
-            </a>
         </li>
         @endforeach
         <div id="chat-end"></div>
@@ -247,21 +254,6 @@
     </form>
 </div>
 
-{{-- Image modal --}}
-<div class="modal fade" id="modal1" tabindex="-1" role="dialog" aria-labelledby="imgModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-body mb-0 p-0">
-                <div class="resimg p-3 text-center">
-                    <img id="modal-img" src="" class="img-fluid">
-                </div>
-            </div>
-            <div class="modal-footer justify-content-center">
-                <button type="button" class="btn btn-outline-primary btn-rounded btn-md" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 @push('js')
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote-bs4.min.js"></script>
@@ -319,7 +311,7 @@ function appendMessage(msg) {
 
     var fileHtml = '';
     if (msg.file_type === 'image' && msg.file_url) {
-        fileHtml = '<a href="#" data-toggle="modal" data-id="' + msg.file_url + '" class="imgfile"><img src="' + msg.file_url + '" alt=""></a>';
+        fileHtml = '<a href="' + msg.file_url + '" target="_blank" class="imgfile"><img src="' + msg.file_url + '" alt=""></a>';
     } else if (msg.file_type === 'pdf' && msg.file_url) {
         fileHtml = '<a href="' + msg.file_url + '" class="pdf_file" download><button class="btn-sm ml-3 mb-1" style="background-color:#662c87; color:white; border:none; padding:5px 15px; border-radius:5px;"><i class="fas fa-file-pdf mr-1"></i> ' + (msg.original_filename || 'file') + '</button></a>';
     } else if (msg.file_url) {
@@ -337,15 +329,17 @@ function appendMessage(msg) {
     var avatarLeft  = '<img src="' + avatarUrl + '" alt="' + (msg.sender_name || '') + '" style="float:left;width:50px;height:50px;margin-left:-53px;">';
     var avatarRight = '<img style="float:right;width:50px;height:50px;" class="avatar-lg" src="' + avatarUrl + '" alt="You">';
 
+    var replyBtn = '<a href="#" class="reply-inline reply-btn" data-id="' + msg.id + '" data-sender="' + (msg.sender_name || '') + '" data-text="' + plainText + '"><i class="fas fa-reply"></i> Reply</a>';
+
     var html = '<li class="message clearfix ' + (isMine ? 'sent-wrap' : '') + '" id="li_' + msg.id + '" data-id="' + msg.id + '">'
         + (isMine ? avatarRight : avatarLeft)
         + '<div class="' + (isMine ? 'sent' : 'received') + ' chat-bubble">'
+        +     replyBtn
         +     replyHtml
         +     (msg.message ? '<p style="padding-bottom:10px">' + msg.message + '</p>' : '')
         +     fileHtml
         +     '<div class="d-flex ' + timeClass + '" style="font-size:11px;color:#777;">' + msg.created_at + '</div>'
         + '</div>'
-        + '<a href="#" class="reply-inline reply-btn" data-id="' + msg.id + '" data-sender="' + (msg.sender_name || '') + '" data-text="' + plainText + '"><i class="fas fa-reply"></i> Reply</a>'
         + '</li>';
 
     $('#chat-end').before(html);
@@ -412,11 +406,6 @@ $('#addForm').on('submit', function(e) {
     });
 });
 
-// Image modal
-$(document).on('click', '.imgfile', function(e) {
-    e.preventDefault();
-    $('#modal-img').attr('src', $(this).data('id'));
-    $('#modal1').modal('show');
-});
+// Images open in new tab via target="_blank" — no JS handler needed
 </script>
 @endpush

@@ -154,7 +154,7 @@
 
 @if(session()->has('auth_user'))
     <li class="nav-item nav-item1">
-        <a href="https://dashboard.gowologlobal.com/{{ base64_encode(session('auth_user.email')) }}" class="link1">
+        <a href="{{ route('sso.dashboard-redirect') }}" class="link1">
             <i class="fas fa-tachometer-alt"></i>
             <p>Dashboard</p>
         </a>

@@ -45,7 +45,7 @@ class RequestController extends Controller
         $requests = CustomizationRequest::where('user_id', $ssoUser['user_id'])
             ->with(['primaryTechnician'])
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate(15)->withQueryString();
 
         return view('user.dashboard', compact('requests'));
     }
