@@ -30,12 +30,12 @@ class PortalUser extends Authenticatable
     }
 
     /**
-     * Super-admin bypass: any user whose email starts with admin@gowolo
-     * gets every permission without needing it explicitly assigned.
+     * Super-admin bypass: admin@gowolo* and support@gowologlobal.com
+     * get every permission without needing it explicitly assigned.
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
-        if (str_starts_with($this->email, 'admin@gowolo')) {
+        if (str_starts_with($this->email, 'admin@gowolo') || $this->email === 'support@gowologlobal.com') {
             return true;
         }
         return parent::hasPermissionTo($permission, $guardName);

