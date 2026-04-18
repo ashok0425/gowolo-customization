@@ -336,4 +336,50 @@ class RequestController extends Controller
             abort(403);
         }
     }
+
+    /**
+     * Customer approves the work once the team has marked it as "Approved by Team".
+     * POST /request/{cuid}/approve
+     */
+    public function approve(string $cuid)
+    {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+        $this->authorizeSsoUser($customizationRequest);
+
+        abort_unless(
+            $customizationRequest->status === CustomizationRequest::STATUS_TEAM_APPROVED,
+            422,
+            'This request is not yet ready for your approval.'
+        );
+
+        $customizationRequest->update([
+            'status' => CustomizationRequest::STATUS_APPROVED,
+        ]);
+
+        activity('customization')
+            ->performedOn($customizationRequest)
+            ->withProperties([
+                'approved_by' => 'customer',
+                'user_id'     => session('auth_user.user_id'),
+            ])
+            ->log('client_approved');
+
+        // Notify staff
+        \App\Models\PortalNotification::create([
+            'type'            => 'client_approved',
+            'title'           => 'Customer Approved Work',
+            'body'            => "{$customizationRequest->first_name} {$customizationRequest->last_name} has approved the work on request {$customizationRequest->ref_number}.",
+            'icon'            => 'fas fa-thumbs-up',
+            'action_url'      => route('admin.requests.show', $customizationRequest->cuid),
+            'action_label'    => 'View Request',
+            'sender_name'     => trim("{$customizationRequest->first_name} {$customizationRequest->last_name}"),
+            'ref_number'      => $customizationRequest->ref_number,
+            'notifiable_type' => 'staff',
+            'notifiable_id'   => null,
+        ]);
+
+        return redirect()
+            ->route('user.request.show', $customizationRequest->cuid)
+            ->with('success', 'Thank you! You have approved the work.');
+    }
 }

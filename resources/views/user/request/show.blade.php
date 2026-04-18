@@ -140,6 +140,51 @@
             </div>
         </div>
 
+        {{-- Approve Work — only when team has approved --}}
+        @if($customizationRequest->status === \App\Models\CustomizationRequest::STATUS_TEAM_APPROVED)
+        <div class="card" style="border: 2px solid #27ae60;">
+            <div class="card-body text-center">
+                <i class="fas fa-user-check fa-2x text-success mb-2 d-block"></i>
+                <h6 class="mb-2">Our team has approved the work.</h6>
+                <p class="text-muted small mb-3">Please review and approve to finalize.</p>
+                <button type="button" class="btn btn-success btn-block" data-toggle="modal" data-target="#approveWorkModal"
+                        style="border-radius:50px;padding:10px;font-weight:600;">
+                    <i class="fas fa-thumbs-up mr-1"></i> Approve the Work
+                </button>
+            </div>
+        </div>
+
+        {{-- Approve Work Confirmation Modal --}}
+        <div class="modal fade" id="approveWorkModal" tabindex="-1" role="dialog" aria-labelledby="approveWorkModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header" style="background:#27ae60;color:#fff;">
+                        <h5 class="modal-title" id="approveWorkModalLabel">
+                            <i class="fas fa-thumbs-up mr-2"></i> Approve Work
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:#fff;text-shadow:none;opacity:1;">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <i class="fas fa-question-circle fa-3x text-success mb-3 d-block"></i>
+                        <h5>Are you sure?</h5>
+                        <p class="text-muted mb-0">You are about to approve the work for request <strong>#{{ $customizationRequest->ref_number }}</strong>. This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <form method="POST" action="{{ route('user.request.approve', $customizationRequest->cuid) }}" style="display:inline;">
+                            @csrf
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-thumbs-up mr-1"></i> Yes, Approve
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Actions --}}
         <div class="card">
             <div class="card-body">

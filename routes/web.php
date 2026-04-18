@@ -78,11 +78,12 @@ Route::middleware('sso.auth')->prefix('request')->name('user.')->group(function 
     Route::get('/bug-report',       [User\BugReportController::class, 'create'])->name('bug-report.create');
     Route::post('/bug-report',      [User\BugReportController::class, 'store'])->name('bug-report.store');
 
-    Route::get('/{cuid}/edit',   [User\RequestController::class, 'edit'])->name('request.edit');
-    Route::put('/{cuid}',        [User\RequestController::class, 'update'])->name('request.update');
-    Route::get('/{cuid}',        [User\RequestController::class, 'show'])->name('request.show');
-    Route::get('/{cuid}/chat',   [User\ChatController::class, 'show'])->name('chat.show');
-    Route::post('/{cuid}/chat',  [User\ChatController::class, 'store'])->name('chat.store');
+    Route::get('/{cuid}/edit',    [User\RequestController::class, 'edit'])->name('request.edit');
+    Route::put('/{cuid}',         [User\RequestController::class, 'update'])->name('request.update');
+    Route::post('/{cuid}/approve',[User\RequestController::class, 'approve'])->name('request.approve');
+    Route::get('/{cuid}',         [User\RequestController::class, 'show'])->name('request.show');
+    Route::get('/{cuid}/chat',    [User\ChatController::class, 'show'])->name('chat.show');
+    Route::post('/{cuid}/chat',   [User\ChatController::class, 'store'])->name('chat.store');
 });
 
 // Chat polling API

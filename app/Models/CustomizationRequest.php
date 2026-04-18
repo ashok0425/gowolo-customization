@@ -88,12 +88,14 @@ class CustomizationRequest extends Model
 
     public static function statuses(): array
     {
+        // Note: STATUS_CLIENT_APPROVED (6) constant is retained for DB backward
+        // compatibility but no longer selectable — client approval is now a
+        // direct action that transitions from "Approved by Team" → "Approved".
         return [
             self::STATUS_PENDING         => 'Pending',
             self::STATUS_ASSIGNED        => 'Assigned',
             self::STATUS_IN_REVIEW       => 'In Review',
             self::STATUS_SENT_FOR_REVIEW => 'Sent for Review',
-            self::STATUS_CLIENT_APPROVED => 'Client Approved',
             self::STATUS_TEAM_APPROVED   => 'Approved by Team',
             self::STATUS_APPROVED        => 'Approved',
             self::STATUS_COMPLETED       => 'Completed',
