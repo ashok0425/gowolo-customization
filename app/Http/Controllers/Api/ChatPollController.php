@@ -76,7 +76,17 @@ class ChatPollController extends Controller
 
     private function format(CustomizationChat $msg, string $viewer): array
     {
-        $msg->loadMissing('replyTo');
+        $msg->loadMissing(['replyTo', 'ssoUser', 'portalUser']);
+
+        // Resolve sender avatar
+        $dashboardBaseUrl = rtrim(config('services.dashboardv2.base_url', 'https://dashboard.gowologlobal.com'), '/');
+        $avatarUrl = null;
+        if ($msg->sender_type === 'user' && $msg->ssoUser && $msg->ssoUser->profile_pic) {
+            $pic = $msg->ssoUser->profile_pic;
+            $avatarUrl = preg_match('#^https?://#i', $pic) ? $pic : $dashboardBaseUrl . '/' . ltrim($pic, '/');
+        } elseif ($msg->sender_type === 'portal_user' && $msg->portalUser && $msg->portalUser->profile_photo) {
+            $avatarUrl = asset($msg->portalUser->profile_photo);
+        }
 
         $fileUrl = null;
         if ($msg->bunny_path && $this->bunny->isConfigured()) {
@@ -106,6 +116,7 @@ class ChatPollController extends Controller
             'id'                => $msg->id,
             'sender_type'       => $msg->sender_type,
             'sender_name'       => $msg->sender_name,
+            'avatar_url'        => $avatarUrl,
             'is_mine'           => ($viewer === 'user' && $msg->sender_type === 'user')
                                 || ($viewer === 'staff' && $msg->sender_type === 'portal_user'),
             'message'           => $msg->message,

@@ -31,6 +31,22 @@ class CustomizationChat extends Model
         return $this->belongsTo(self::class, 'reply_to_id');
     }
 
+    /**
+     * SSO user who sent this message (only when sender_type = 'user').
+     */
+    public function ssoUser()
+    {
+        return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    /**
+     * Portal staff who sent this message (only when sender_type = 'portal_user').
+     */
+    public function portalUser()
+    {
+        return $this->belongsTo(PortalUser::class, 'sender_id');
+    }
+
     public function getHasFileAttribute(): bool
     {
         return $this->bunny_path || $this->local_path;

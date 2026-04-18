@@ -163,12 +163,17 @@
             $isMine = ($viewerType === 'staff' && $chat->sender_type === 'portal_user')
                    || ($viewerType === 'user' && $chat->sender_type === 'user');
 
-            // Avatar — own messages use viewerAvatar (profile pic), others get default/initials
-            if ($isMine) {
-                $avatarUrl = $viewerAvatar ?? null;
-            } else {
-                $avatarUrl = null;
+            // Avatar — use actual profile pic from dashboard_db, fallback to initials
+            $dashboardBaseUrl = rtrim(config('services.dashboardv2.base_url', 'https://dashboard.gowologlobal.com'), '/');
+            $avatarUrl = null;
+
+            if ($chat->sender_type === 'user' && $chat->ssoUser && $chat->ssoUser->profile_pic) {
+                $pic = $chat->ssoUser->profile_pic;
+                $avatarUrl = preg_match('#^https?://#i', $pic) ? $pic : $dashboardBaseUrl . '/' . ltrim($pic, '/');
+            } elseif ($chat->sender_type === 'portal_user' && $chat->portalUser && $chat->portalUser->profile_photo) {
+                $avatarUrl = asset($chat->portalUser->profile_photo);
             }
+
             if (!$avatarUrl) {
                 $bg = $chat->sender_type === 'portal_user' ? '662c87' : '1C2B36';
                 $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($chat->sender_name ?? 'User') . '&background=' . $bg . '&color=fff&size=64&rounded=true';
@@ -328,7 +333,6 @@ var postUrl     = '{{ $postUrl }}';
 var pollUrl     = '{{ $pollUrl }}';
 var viewerType  = '{{ $viewerType }}';
 var myName      = '{{ $viewerName }}';
-var myAvatar    = '{{ $viewerAvatar }}';
 
 // Summernote init matching dashboardv2 exactly
 $('#comment').summernote({
@@ -373,7 +377,7 @@ function avatarForSender(senderType, senderName) {
 function appendMessage(msg) {
     var isMine = (viewerType === 'staff' && msg.sender_type === 'portal_user')
               || (viewerType === 'user' && msg.sender_type === 'user');
-    var avatarUrl = isMine && myAvatar ? myAvatar : avatarForSender(msg.sender_type, msg.sender_name);
+    var avatarUrl = msg.avatar_url || avatarForSender(msg.sender_type, msg.sender_name);
 
     var fileHtml = '';
     if (msg.file_type === 'image' && msg.file_url) {

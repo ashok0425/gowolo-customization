@@ -28,7 +28,7 @@ class ChatController extends Controller
             );
         }
 
-        $chats  = $customizationRequest->chats()->with('replyTo')->get();
+        $chats  = $customizationRequest->chats()->with(['replyTo', 'ssoUser', 'portalUser'])->get();
         $lastId = $chats->last()?->id ?? 0;
 
         CustomizationChat::where('request_id', $customizationRequest->id)
@@ -120,11 +120,22 @@ class ChatController extends Controller
 
     private function formatChat(CustomizationChat $chat): array
     {
-        $chat->loadMissing('replyTo');
+        $chat->loadMissing(['replyTo', 'ssoUser', 'portalUser']);
+
+        $avatarUrl = null;
+        $dashboardBaseUrl = rtrim(config('services.dashboardv2.base_url', 'https://dashboard.gowologlobal.com'), '/');
+        if ($chat->sender_type === 'user' && $chat->ssoUser && $chat->ssoUser->profile_pic) {
+            $pic = $chat->ssoUser->profile_pic;
+            $avatarUrl = preg_match('#^https?://#i', $pic) ? $pic : $dashboardBaseUrl . '/' . ltrim($pic, '/');
+        } elseif ($chat->sender_type === 'portal_user' && $chat->portalUser && $chat->portalUser->profile_photo) {
+            $avatarUrl = asset($chat->portalUser->profile_photo);
+        }
+
         return [
             'id'                => $chat->id,
             'sender_type'       => $chat->sender_type,
             'sender_name'       => $chat->sender_name,
+            'avatar_url'        => $avatarUrl,
             'message'           => $chat->message,
             'reply_to_id'       => $chat->reply_to_id,
             'reply_sender'      => $chat->replyTo?->sender_name,
