@@ -163,9 +163,16 @@
             $isMine = ($viewerType === 'staff' && $chat->sender_type === 'portal_user')
                    || ($viewerType === 'user' && $chat->sender_type === 'user');
 
-            // Avatar — use ui-avatars for initials-based fallback
-            $bg = $chat->sender_type === 'portal_user' ? '662c87' : '1C2B36';
-            $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($chat->sender_name ?? 'User') . '&background=' . $bg . '&color=fff&size=64&rounded=true';
+            // Avatar — own messages use viewerAvatar (profile pic), others get default/initials
+            if ($isMine) {
+                $avatarUrl = $viewerAvatar ?? null;
+            } else {
+                $avatarUrl = null;
+            }
+            if (!$avatarUrl) {
+                $bg = $chat->sender_type === 'portal_user' ? '662c87' : '1C2B36';
+                $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($chat->sender_name ?? 'User') . '&background=' . $bg . '&color=fff&size=64&rounded=true';
+            }
 
             // Bunny first (signed URL), then local_path fallback — matches poll controller priority
             if ($chat->bunny_path && app(\App\Services\BunnyStorageService::class)->isConfigured()) {
@@ -216,13 +223,14 @@
                 @endif
 
                 @if($chat->file_type === 'image' && $fileUrl)
-                    <a href="{{ $fileUrl }}" target="_blank" class="imgfile">
-                        <img src="{{ $fileUrl }}" alt="">
+                    <a href="#" data-toggle="modal" data-id="{{ $fileUrl }}" class="imgfile">
+                        <img style="height:auto; width:50%; border-radius:0px !important; padding:10px;" src="{{ $fileUrl }}" alt="">
                     </a>
                 @elseif($chat->file_type === 'pdf' && $fileUrl)
                     <a href="{{ $fileUrl }}" data-toggle="modal" data-id="{{ $fileUrl }}" class="pdf_file" download>
+                        <embed src="{{ $fileUrl }}" style="height:auto; width:100%; border-radius:0px !important; padding:10px;" alt="download" class="pdf_view">
                         <button class="btn-sm ml-3 mb-1" style="background-color:#662c87; color:white; border:none; padding:5px 15px; border-radius:5px;">
-                            <i class="fas fa-file-pdf mr-1"></i> {{ $chat->original_filename }}
+                            Preview
                         </button>
                     </a>
                 @elseif($fileUrl)
@@ -278,14 +286,49 @@
 </div>
 
 
+{{-- Image preview modal — matches dashboardv2 --}}
+<div class="modal fade" id="modal1" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Image Preview</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body resimg"></div>
+        </div>
+    </div>
+</div>
+
+{{-- PDF preview modal — matches dashboardv2 --}}
+<div class="modal fade" id="modal2" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">PDF Preview</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body respdf" style="height:80vh;">
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('css')
+<style>
+    .preview-image { max-width: 100%; height: auto; }
+    .respdf iframe { width: 100%; height: 100%; border: none; }
+</style>
+@endpush
+
 @push('js')
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote-bs4.min.js"></script>
 <script>
-var lastId     = {{ $lastId }};
-var postUrl    = '{{ $postUrl }}';
-var pollUrl    = '{{ $pollUrl }}';
-var viewerType = '{{ $viewerType }}';
-var myName     = '{{ $viewerName }}';
+var lastId      = {{ $lastId }};
+var postUrl     = '{{ $postUrl }}';
+var pollUrl     = '{{ $pollUrl }}';
+var viewerType  = '{{ $viewerType }}';
+var myName      = '{{ $viewerName }}';
+var myAvatar    = '{{ $viewerAvatar }}';
 
 // Summernote init matching dashboardv2 exactly
 $('#comment').summernote({
@@ -330,13 +373,13 @@ function avatarForSender(senderType, senderName) {
 function appendMessage(msg) {
     var isMine = (viewerType === 'staff' && msg.sender_type === 'portal_user')
               || (viewerType === 'user' && msg.sender_type === 'user');
-    var avatarUrl = avatarForSender(msg.sender_type, msg.sender_name);
+    var avatarUrl = isMine && myAvatar ? myAvatar : avatarForSender(msg.sender_type, msg.sender_name);
 
     var fileHtml = '';
     if (msg.file_type === 'image' && msg.file_url) {
-        fileHtml = '<a href="' + msg.file_url + '" target="_blank" class="imgfile"><img src="' + msg.file_url + '" alt=""></a>';
+        fileHtml = '<a href="#" data-toggle="modal" data-id="' + msg.file_url + '" class="imgfile"><img style="height:auto; width:50%; border-radius:0px !important; padding:10px;" src="' + msg.file_url + '" alt=""></a>';
     } else if (msg.file_type === 'pdf' && msg.file_url) {
-        fileHtml = '<a href="' + msg.file_url + '" class="pdf_file" download><button class="btn-sm ml-3 mb-1" style="background-color:#662c87; color:white; border:none; padding:5px 15px; border-radius:5px;"><i class="fas fa-file-pdf mr-1"></i> ' + (msg.original_filename || 'file') + '</button></a>';
+        fileHtml = '<a href="' + msg.file_url + '" data-toggle="modal" data-id="' + msg.file_url + '" class="pdf_file" download><embed src="' + msg.file_url + '" style="height:auto; width:100%; border-radius:0px !important; padding:10px;" alt="download" class="pdf_view"><button class="btn-sm ml-3 mb-1" style="background-color:#662c87; color:white;">Preview</button></a>';
     } else if (msg.file_url) {
         fileHtml = '<a href="' + msg.file_url + '" class="pdf_file" download><button class="btn-sm ml-3 mb-1" style="background-color:#662c87; color:white; border:none; padding:5px 15px; border-radius:5px;"><i class="fas fa-download mr-1"></i> ' + (msg.original_filename || 'file') + '</button></a>';
     }
@@ -429,6 +472,20 @@ $('#addForm').on('submit', function(e) {
     });
 });
 
-// Images open in new tab via target="_blank" — no JS handler needed
+// Image modal — matches dashboardv2
+$(document).on('click', '.imgfile', function(e) {
+    e.preventDefault();
+    var id = $(this).attr('data-id');
+    $('.resimg').html('<center><img class="preview-image" src="' + id + '" alt="no" allowfullscreen></center>');
+    $('#modal1').modal('show');
+});
+
+// PDF modal — matches dashboardv2
+$(document).on('click', '.pdf_file', function(e) {
+    e.preventDefault();
+    var id = $(this).attr('data-id');
+    $('.respdf').html('<iframe class="embed-responsive-item" src="' + id + '" alt="no" allowfullscreen></iframe>');
+    $('#modal2').modal('show');
+});
 </script>
 @endpush
