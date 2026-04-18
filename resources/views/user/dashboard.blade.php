@@ -1,6 +1,43 @@
 @extends('layouts.app')
 @section('title', 'My Requests')
 
+@push('css')
+<style>
+    /* Welcome page — shown on first visit when user has no requests.
+       Mirrors dashboardv2's .custom_welcome_div styling. */
+    .custom-welcome-div {
+        background-image: url('https://dashboard.gowologlobal.com/images/Customization_Welcome_Page_Updated_min.png');
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: center;
+        min-height: 600px;
+        max-width: 100%;
+    }
+    .welcome-cta {
+        margin-top: 45%;
+        margin-left: 15%;
+    }
+    .welcome-btn {
+        background-color: #662c87 !important;
+        color: #fff !important;
+        font-size: 14px;
+        border-radius: 5px;
+        font-weight: 600;
+        padding: 10px 25px;
+        text-decoration: none;
+    }
+    .welcome-btn:hover {
+        background-color: #4f1f6c !important;
+        color: #fff !important;
+        text-decoration: none;
+    }
+    @media (max-width: 768px) {
+        .custom-welcome-div { min-height: 400px; }
+        .welcome-cta { margin-top: 60%; margin-left: 0; text-align: center; }
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="page-header">
     <h4 class="page-title">My Requests</h4>
@@ -24,13 +61,13 @@
             </div>
             <div class="card-body">
                 @if($requests->isEmpty())
-                <div class="text-center py-5">
-                    <i class="fas fa-paint-brush fa-3x text-muted mb-3 d-block"></i>
-                    <h5 class="text-muted">No requests yet</h5>
-                    <p class="text-muted">Submit your first customization request to get started.</p>
-                    <a href="{{ route('user.request.create') }}" class="btn btn-primary">
-                        <i class="fa fa-plus mr-1"></i> New Request
-                    </a>
+                {{-- Welcome page — matches dashboardv2's custom_welcome_div --}}
+                <div class="custom-welcome-div d-flex align-items-center justify-content-center">
+                    <div class="welcome-cta">
+                        <a href="{{ route('user.request.create') }}" class="btn welcome-btn">
+                            Proceed To Customization
+                        </a>
+                    </div>
                 </div>
                 @else
                 <div class="table-responsive">
