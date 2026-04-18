@@ -167,14 +167,29 @@
             $bg = $chat->sender_type === 'portal_user' ? '662c87' : '1C2B36';
             $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($chat->sender_name ?? 'User') . '&background=' . $bg . '&color=fff&size=64&rounded=true';
 
-            // If local_path is already a full URL (migrated legacy file on dashboardv2),
-            // use it as-is. Otherwise prefix with the current app URL via asset().
-            if ($chat->local_path) {
+            // Bunny first (signed URL), then local_path fallback — matches poll controller priority
+            if ($chat->bunny_path && app(\App\Services\BunnyStorageService::class)->isConfigured()) {
+                $fileUrl = app(\App\Services\BunnyStorageService::class)->signedUrl($chat->bunny_path);
+            } elseif ($chat->local_path) {
                 $fileUrl = preg_match('#^https?://#i', $chat->local_path)
                     ? $chat->local_path
                     : asset($chat->local_path);
             } else {
-                $fileUrl = $chat->bunny_path ?? null;
+                $fileUrl = null;
+            }
+
+            // Normalize legacy file_type — old DB may store different values or null
+            if ($fileUrl && !$chat->file_type && $chat->original_filename) {
+                $ext = strtolower(pathinfo($chat->original_filename, PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                    $chat->file_type = 'image';
+                } elseif ($ext === 'pdf') {
+                    $chat->file_type = 'pdf';
+                } elseif (in_array($ext, ['mp4', 'webm'])) {
+                    $chat->file_type = 'video';
+                } else {
+                    $chat->file_type = 'document';
+                }
             }
         @endphp
 
@@ -210,10 +225,10 @@
                             <i class="fas fa-file-pdf mr-1"></i> {{ $chat->original_filename }}
                         </button>
                     </a>
-                @elseif($chat->file_type && $fileUrl)
+                @elseif($fileUrl)
                     <a href="{{ $fileUrl }}" download class="pdf_file">
                         <button class="btn-sm ml-3 mb-1" style="background-color:#662c87; color:white; border:none; padding:5px 15px; border-radius:5px;">
-                            <i class="fas fa-download mr-1"></i> {{ $chat->original_filename }}
+                            <i class="fas fa-download mr-1"></i> {{ $chat->original_filename ?? 'Download file' }}
                         </button>
                     </a>
                 @endif

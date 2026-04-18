@@ -82,11 +82,24 @@ class ChatPollController extends Controller
         if ($msg->bunny_path && $this->bunny->isConfigured()) {
             $fileUrl = $this->bunny->signedUrl($msg->bunny_path);
         } elseif ($msg->local_path) {
-            // Full URLs (legacy files hosted on dashboardv2) are used as-is;
-            // relative paths go through asset() to prefix the current domain.
             $fileUrl = preg_match('#^https?://#i', $msg->local_path)
                 ? $msg->local_path
                 : asset($msg->local_path);
+        }
+
+        // Normalize legacy file_type — old DB may store different values or null
+        $fileType = $msg->file_type;
+        if ($fileUrl && !$fileType && $msg->original_filename) {
+            $ext = strtolower(pathinfo($msg->original_filename, PATHINFO_EXTENSION));
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                $fileType = 'image';
+            } elseif ($ext === 'pdf') {
+                $fileType = 'pdf';
+            } elseif (in_array($ext, ['mp4', 'webm'])) {
+                $fileType = 'video';
+            } else {
+                $fileType = 'document';
+            }
         }
 
         return [
@@ -100,7 +113,7 @@ class ChatPollController extends Controller
             'reply_sender'      => $msg->replyTo?->sender_name,
             'reply_text'        => $msg->replyTo ? \Str::limit(strip_tags($msg->replyTo->message), 40) : null,
             'file_url'          => $fileUrl,
-            'file_type'         => $msg->file_type,
+            'file_type'         => $fileType,
             'original_filename' => $msg->original_filename,
             'created_at'        => $msg->created_at->format('m/d/Y h:i A'),
             'time_ago'          => $msg->created_at->diffForHumans(),
