@@ -152,7 +152,7 @@
     </li>
 @endauth
 
-@if(session()->has('auth_user'))
+@if(!Auth::guard('portal')->check() && session()->has('auth_user'))
     <li class="nav-item nav-item1">
         <a href="{{ route('sso.dashboard-redirect') }}" class="link1">
             <i class="fas fa-tachometer-alt"></i>

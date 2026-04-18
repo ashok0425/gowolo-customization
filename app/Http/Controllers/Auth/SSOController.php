@@ -50,7 +50,7 @@ class SSOController extends Controller
                 ->withProperties(['user_id' => $user->id, 'ip' => $request->ip()])
                 ->log('user_sso_login');
 
-            // support@gowologlobal.com → auto-login as super_admin on the portal guard
+            // support@gowologlobal.com → treat as super_admin on the portal guard
             if (strtolower($user->email) === 'support@gowologlobal.com') {
                 $portalUser = PortalUser::firstOrCreate(
                     ['email' => 'support@gowologlobal.com'],
@@ -65,6 +65,9 @@ class SSOController extends Controller
                 if (!$portalUser->hasRole('super_admin')) {
                     $portalUser->assignRole('super_admin');
                 }
+
+                // Clear SSO session so only admin sidebar/menu shows
+                session()->forget('auth_user');
 
                 Auth::guard('portal')->login($portalUser);
 

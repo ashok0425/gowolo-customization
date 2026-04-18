@@ -505,7 +505,7 @@
                     </li>
                     @endauth
 
-                    @if(session()->has('auth_user'))
+                    @if(!Auth::guard('portal')->check() && session()->has('auth_user'))
                     <li class="nav-item dropdown hidden-caret">
                         <a class="dropdown-toggle profile-pic" data-toggle="dropdown" href="#" aria-expanded="false">
                             <span>{{ session('auth_user.name') }}</span>
