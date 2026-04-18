@@ -71,9 +71,46 @@
             </div>
         </div>
 
+        {{-- Status & Remark Form --}}
+        <div class="card">
+            <div class="card-header"><h4 class="card-title">Review &amp; Feedback</h4></div>
+            <div class="card-body">
+                @if(session('success'))
+                <div class="alert alert-success py-2">{{ session('success') }}</div>
+                @endif
+
+                <form method="POST" action="{{ route('admin.bug-reports.update', $bugReport) }}">
+                    @csrf @method('PUT')
+
+                    <div class="form-group">
+                        <label><strong>Status</strong></label>
+                        <select name="status" class="form-control">
+                            @foreach(\App\Models\BugReport::statuses() as $val => $label)
+                            <option value="{{ $val }}" {{ ($bugReport->status ?? 'in_review') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label><strong>Remark / Feedback</strong> <small class="text-muted">(visible to user)</small></label>
+                        <textarea name="remark" class="form-control" rows="5" placeholder="Leave feedback for the user...">{{ old('remark', $bugReport->remark) }}</textarea>
+                    </div>
+
+                    @if($bugReport->reviewed_at)
+                    <small class="text-muted d-block mb-2">
+                        Last reviewed on {{ $bugReport->reviewed_at->format('M d, Y H:i') }}
+                    </small>
+                    @endif
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-save mr-1"></i> Save
+                    </button>
+                </form>
+            </div>
+        </div>
+
         {{-- Actions --}}
         <div class="card">
-            <div class="card-header"><h4 class="card-title">Actions</h4></div>
             <div class="card-body">
                 <a href="{{ route('admin.bug-reports.index') }}" class="btn btn-light btn-block">
                     <i class="fas fa-arrow-left mr-1"></i> Back to List

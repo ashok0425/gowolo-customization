@@ -41,6 +41,7 @@
                                 <th>Message</th>
                                 <th>Screenshot</th>
                                 <th>Status</th>
+                                <th>Team Feedback</th>
                                 <th>Submitted</th>
                             </tr>
                         </thead>
@@ -60,10 +61,13 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($report->is_read)
-                                        <span class="badge badge-success">Reviewed</span>
+                                    <span class="badge {{ $report->status_badge }}">{{ $report->status_label }}</span>
+                                </td>
+                                <td style="max-width:260px;">
+                                    @if($report->remark)
+                                        <small class="text-muted" style="white-space:pre-wrap;">{{ Str::limit($report->remark, 120) }}</small>
                                     @else
-                                        <span class="badge badge-warning">Pending</span>
+                                        <span class="text-muted">—</span>
                                     @endif
                                 </td>
                                 <td>{{ $report->created_at->format('M d, Y H:i') }}</td>

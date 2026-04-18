@@ -53,6 +53,7 @@ Route::middleware('portal.auth')->prefix('admin')->name('admin.')->group(functio
     // Bug reports
     Route::get('/bug-reports',              [Admin\BugReportController::class, 'index'])->name('bug-reports.index');
     Route::get('/bug-reports/{bugReport}',  [Admin\BugReportController::class, 'show'])->name('bug-reports.show');
+    Route::put('/bug-reports/{bugReport}',  [Admin\BugReportController::class, 'update'])->name('bug-reports.update');
 
     // User management — requires manage_portal_users permission
     Route::middleware('permission:manage_portal_users')->group(function () {
