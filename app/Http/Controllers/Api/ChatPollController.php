@@ -82,7 +82,11 @@ class ChatPollController extends Controller
         if ($msg->bunny_path && $this->bunny->isConfigured()) {
             $fileUrl = $this->bunny->signedUrl($msg->bunny_path);
         } elseif ($msg->local_path) {
-            $fileUrl = asset($msg->local_path);
+            // Full URLs (legacy files hosted on dashboardv2) are used as-is;
+            // relative paths go through asset() to prefix the current domain.
+            $fileUrl = preg_match('#^https?://#i', $msg->local_path)
+                ? $msg->local_path
+                : asset($msg->local_path);
         }
 
         return [

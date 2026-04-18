@@ -74,11 +74,23 @@ class MigrateLegacyRequests extends Command
         $bar = $this->output->createProgressBar($rows->count());
         $bar->start();
 
+        // Base URL used to make legacy file paths absolute so the files keep
+        // rendering from the dashboardv2 server until/unless physically copied.
+        $legacyBaseUrl = rtrim(env('DASHBOARDV2_URL', 'https://dashboard.gowologlobal.com'), '/');
+
         foreach ($rows as $row) {
             try {
-                $exists = CustomizationRequest::where('origin_cust_req_id', $row->cust_req_id)->exists();
-                if ($exists) {
+                $existing = CustomizationRequest::where('origin_cust_req_id', $row->cust_req_id)->first();
+
+                // Always (re)sync chats and files even for already-migrated requests
+                // — that way a partial previous run can be completed without --fresh.
+                $resyncOnly = (bool) $existing;
+
+                if ($resyncOnly) {
+                    $newRequest = $existing;
                     $skipped++;
+                    $this->syncLegacyChats($row, $newRequest, $legacyBaseUrl, $dry);
+                    $this->syncLegacyFiles($row, $newRequest, $legacyBaseUrl, $dry);
                     $bar->advance();
                     continue;
                 }
@@ -204,88 +216,9 @@ class MigrateLegacyRequests extends Command
                     $newRequest->update(['origin_question_id' => $questions->id]);
                 }
 
-                // ============ Migrate related chats ============
-                $legacyChats = DB::connection('dashboard_db')
-                    ->table('customization_chats')
-                    ->where(function ($q) use ($row) {
-                        $q->where('cust_req_id', $row->cust_req_id)
-                          ->orWhere('customization_id', $row->cust_req_id);
-                    })
-                    ->orderBy('id')
-                    ->get();
-
-                foreach ($legacyChats as $chat) {
-                    // Sender heuristic: if chat.user_id == request.cust_user_id, it's the customer,
-                    // otherwise it's a staff member (technician/admin).
-                    $isCustomer = ($chat->user_id && $row->cust_user_id && $chat->user_id == $row->cust_user_id);
-                    $senderType = $isCustomer ? 'user' : 'portal_user';
-
-                    // Resolve sender_name from dashboard_db.users if available
-                    $senderName = null;
-                    if ($chat->user_id) {
-                        $u = DB::connection('dashboard_db')->table('users')
-                            ->select('name', 'last_name')
-                            ->where('id', $chat->user_id)
-                            ->first();
-                        if ($u) {
-                            $senderName = trim(($u->name ?? '') . ' ' . ($u->last_name ?? ''));
-                        }
-                    }
-                    if (!$senderName) {
-                        $senderName = $isCustomer
-                            ? trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''))
-                            : ($row->technician_name1 ?? 'Staff');
-                    }
-
-                    // Split file into original_filename + local_path
-                    $localPath       = null;
-                    $originalName    = null;
-                    if (!empty($chat->file)) {
-                        $localPath    = $chat->file;
-                        $originalName = basename($chat->file);
-                    }
-
-                    CustomizationChat::forceCreate([
-                        'request_id'        => $newRequest->id,
-                        'sender_type'       => $senderType,
-                        'sender_id'         => $chat->user_id,
-                        'sender_name'       => $senderName ?: 'Unknown',
-                        'message'           => $chat->comment,
-                        'local_path'        => $localPath,
-                        'bunny_path'        => null,
-                        'bunny_synced'      => false,
-                        'file_type'         => $chat->type,
-                        'original_filename' => $originalName,
-                        'read_by_user'      => true,  // legacy messages considered already read
-                        'read_by_staff'     => true,
-                        'created_at'        => $chat->created_at,
-                        'updated_at'        => $chat->updated_at,
-                    ]);
-                }
-
-                // ============ Migrate related files ============
-                $legacyFiles = DB::connection('dashboard_db')
-                    ->table('customization_files')
-                    ->where('cust_id', $row->cust_req_id)
-                    ->orderBy('id')
-                    ->get();
-
-                foreach ($legacyFiles as $file) {
-                    CustomizationFile::forceCreate([
-                        'request_id'       => $newRequest->id,
-                        'uploaded_by_type' => 'user',
-                        'uploaded_by_id'   => $file->user_id,
-                        'file_category'    => 'attachment',
-                        'original_name'    => $file->name ?: basename($file->files ?? ''),
-                        'extension'        => $file->extension,
-                        'size_bytes'       => $this->parseSizeBytes($file->size),
-                        'local_path'       => $file->files,
-                        'bunny_path'       => null,
-                        'bunny_synced'     => false,
-                        'created_at'       => $file->created_at,
-                        'updated_at'       => $file->updated_at,
-                    ]);
-                }
+                // ============ Migrate related chats and files ============
+                $this->syncLegacyChats($row, $newRequest, $legacyBaseUrl, $dry);
+                $this->syncLegacyFiles($row, $newRequest, $legacyBaseUrl, $dry);
 
                 $migrated++;
             } catch (\Throwable $e) {
@@ -328,5 +261,122 @@ class MigrateLegacyRequests extends Command
         }
 
         return 0;
+    }
+
+    /**
+     * Prefix a relative legacy path with the dashboardv2 URL so it renders
+     * from the original server. Full URLs are returned untouched.
+     */
+    private function normalizeLegacyPath(?string $path, string $legacyBaseUrl): ?string
+    {
+        if (empty($path)) return null;
+        if (preg_match('#^https?://#i', $path)) return $path;
+        return $legacyBaseUrl . '/' . ltrim($path, '/');
+    }
+
+    /**
+     * Sync chats for a legacy request. Idempotent — dedupes by
+     * (request_id, created_at, sender_id, message) so re-runs don't duplicate.
+     */
+    private function syncLegacyChats($row, CustomizationRequest $newRequest, string $legacyBaseUrl, bool $dry): void
+    {
+        $legacyChats = DB::connection('dashboard_db')
+            ->table('customization_chats')
+            ->where(function ($q) use ($row) {
+                $q->where('cust_req_id', $row->cust_req_id)
+                  ->orWhere('customization_id', $row->cust_req_id);
+            })
+            ->orderBy('id')
+            ->get();
+
+        foreach ($legacyChats as $chat) {
+            $isCustomer = ($chat->user_id && $row->cust_user_id && $chat->user_id == $row->cust_user_id);
+            $senderType = $isCustomer ? 'user' : 'portal_user';
+
+            // Resolve sender_name
+            $senderName = null;
+            if ($chat->user_id) {
+                $u = DB::connection('dashboard_db')->table('users')
+                    ->select('name', 'last_name')->where('id', $chat->user_id)->first();
+                if ($u) $senderName = trim(($u->name ?? '') . ' ' . ($u->last_name ?? ''));
+            }
+            if (!$senderName) {
+                $senderName = $isCustomer
+                    ? trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''))
+                    : ($row->technician_name1 ?? 'Staff');
+            }
+
+            // File path — rewrite to full dashboardv2 URL so it renders from the old server
+            $localPath    = $this->normalizeLegacyPath($chat->file ?? null, $legacyBaseUrl);
+            $originalName = $chat->file ? basename($chat->file) : null;
+
+            // Dedup check: skip if a chat with the same created_at + sender_id + message already exists
+            $exists = CustomizationChat::where('request_id', $newRequest->id)
+                ->where('created_at', $chat->created_at)
+                ->where(function ($q) use ($chat) {
+                    $q->where('sender_id', $chat->user_id)
+                      ->orWhereNull('sender_id');
+                })
+                ->where('message', $chat->comment)
+                ->exists();
+
+            if ($exists || $dry) continue;
+
+            CustomizationChat::forceCreate([
+                'request_id'        => $newRequest->id,
+                'sender_type'       => $senderType,
+                'sender_id'         => $chat->user_id,
+                'sender_name'       => $senderName ?: 'Unknown',
+                'message'           => $chat->comment,
+                'local_path'        => $localPath,
+                'bunny_path'        => null,
+                'bunny_synced'      => false,
+                'file_type'         => $chat->type,
+                'original_filename' => $originalName,
+                'read_by_user'      => true,
+                'read_by_staff'     => true,
+                'created_at'        => $chat->created_at,
+                'updated_at'        => $chat->updated_at,
+            ]);
+        }
+    }
+
+    /**
+     * Sync files for a legacy request. Dedupes by (request_id, original_name, created_at).
+     */
+    private function syncLegacyFiles($row, CustomizationRequest $newRequest, string $legacyBaseUrl, bool $dry): void
+    {
+        $legacyFiles = DB::connection('dashboard_db')
+            ->table('customization_files')
+            ->where('cust_id', $row->cust_req_id)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($legacyFiles as $file) {
+            $originalName = $file->name ?: basename($file->files ?? '');
+            $localPath    = $this->normalizeLegacyPath($file->files ?? null, $legacyBaseUrl);
+
+            $exists = CustomizationFile::where('request_id', $newRequest->id)
+                ->where('original_name', $originalName)
+                ->where('created_at', $file->created_at)
+                ->exists();
+
+            if ($exists || $dry) continue;
+
+            CustomizationFile::forceCreate([
+                'request_id'       => $newRequest->id,
+                'uploaded_by_type' => 'user',
+                'uploaded_by_id'   => $file->user_id,
+                'file_category'    => 'attachment',
+                'original_name'    => $originalName,
+                'extension'        => $file->extension,
+                'size_bytes'       => $this->parseSizeBytes($file->size),
+                'local_path'       => $localPath,
+                'bunny_path'       => null,
+                'bunny_synced'     => false,
+                'created_at'       => $file->created_at,
+                'updated_at'       => $file->updated_at,
+            ]);
+        }
     }
 }

@@ -167,7 +167,15 @@
             $bg = $chat->sender_type === 'portal_user' ? '662c87' : '1C2B36';
             $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($chat->sender_name ?? 'User') . '&background=' . $bg . '&color=fff&size=64&rounded=true';
 
-            $fileUrl = $chat->local_path ? asset($chat->local_path) : ($chat->bunny_path ?? null);
+            // If local_path is already a full URL (migrated legacy file on dashboardv2),
+            // use it as-is. Otherwise prefix with the current app URL via asset().
+            if ($chat->local_path) {
+                $fileUrl = preg_match('#^https?://#i', $chat->local_path)
+                    ? $chat->local_path
+                    : asset($chat->local_path);
+            } else {
+                $fileUrl = $chat->bunny_path ?? null;
+            }
         @endphp
 
         <li class="message clearfix {{ $isMine ? 'sent-wrap' : '' }}" id="li_{{ $chat->id }}" data-id="{{ $chat->id }}">
