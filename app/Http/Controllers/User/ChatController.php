@@ -37,13 +37,17 @@ class ChatController extends Controller
         $this->authorizeSso($customizationRequest);
 
         $request->validate([
-            'message'     => 'required_without:file|nullable|string',
-            'file'        => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf,doc,docx|max:10240',
+            'message'     => 'required_without:files|nullable|string',
+            'files'       => 'nullable|array|max:10',
+            'files.*'     => 'file|mimes:jpeg,png,jpg,gif,pdf,doc,docx|max:10240',
             'reply_to_id' => 'nullable|integer|exists:customization_chats,id',
         ]);
 
         $ssoUser = session('auth_user');
+        $files   = $request->file('files', []);
+        $chats   = [];
 
+        // First chat gets the message text + first file (if any)
         $chat = new CustomizationChat([
             'request_id'   => $customizationRequest->id,
             'sender_type'  => 'user',
@@ -54,27 +58,26 @@ class ChatController extends Controller
             'read_by_user' => true,
         ]);
 
-        if ($request->hasFile('file')) {
-            $file      = $request->file('file');
-            $extension = strtolower($file->getClientOriginalExtension());
-            $fileType  = $this->getFileType($extension);
-
-            if ($this->bunny->isConfigured()) {
-                $bunnyPath = $this->bunny->upload($file, 'chat/' . $fileType . 's');
-                $chat->bunny_path        = $bunnyPath;
-                $chat->bunny_synced      = true;
-                $chat->file_type         = $fileType;
-                $chat->original_filename = $file->getClientOriginalName();
-            } else {
-                $filename = time() . '_' . uniqid() . '.' . $extension;
-                $file->move(public_path('uploads/chat'), $filename);
-                $chat->local_path        = '/uploads/chat/' . $filename;
-                $chat->file_type         = $fileType;
-                $chat->original_filename = $file->getClientOriginalName();
-            }
+        if (!empty($files)) {
+            $this->attachFile($chat, $files[0]);
         }
 
         $chat->save();
+        $chats[] = $chat;
+
+        // Additional files get their own chat rows (no message text)
+        for ($i = 1; $i < count($files); $i++) {
+            $extraChat = new CustomizationChat([
+                'request_id'   => $customizationRequest->id,
+                'sender_type'  => 'user',
+                'sender_id'    => $ssoUser['user_id'],
+                'sender_name'  => $ssoUser['name'] ?? $ssoUser['email'],
+                'read_by_user' => true,
+            ]);
+            $this->attachFile($extraChat, $files[$i]);
+            $extraChat->save();
+            $chats[] = $extraChat;
+        }
 
         // Notify staff about the new message from user
         PortalNotification::notifyNewChat(
@@ -84,7 +87,27 @@ class ChatController extends Controller
             null  // broadcast to all staff
         );
 
-        return response()->json(['success' => true, 'chat' => $this->formatChat($chat)]);
+        return response()->json([
+            'success' => true,
+            'chats'   => array_map(fn ($c) => $this->formatChat($c), $chats),
+        ]);
+    }
+
+    private function attachFile(CustomizationChat $chat, \Illuminate\Http\UploadedFile $file): void
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $fileType  = $this->getFileType($extension);
+
+        if ($this->bunny->isConfigured()) {
+            $chat->bunny_path        = $this->bunny->upload($file, 'chat/' . $fileType . 's');
+            $chat->bunny_synced      = true;
+        } else {
+            $filename = time() . '_' . uniqid() . '.' . $extension;
+            $file->move(public_path('uploads/chat'), $filename);
+            $chat->local_path        = '/uploads/chat/' . $filename;
+        }
+        $chat->file_type         = $fileType;
+        $chat->original_filename = $file->getClientOriginalName();
     }
 
     private function getFileType(string $ext): string

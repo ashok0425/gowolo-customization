@@ -276,8 +276,8 @@
 
             <div class="form-group row mt-3 mx-0">
                 <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="file" name="file" accept="image/*,.pdf,.doc,.docx,.mp4">
-                    <label class="custom-file-label" for="file">Choose file</label>
+                    <input type="file" class="custom-file-input" id="file" name="files[]" multiple accept="image/*,.pdf,.doc,.docx,.mp4">
+                    <label class="custom-file-label" for="file">Choose file(s)</label>
                 </div>
             </div>
         </div>
@@ -353,8 +353,9 @@ $('#comment').summernote({
 
 // Bootstrap custom-file-input label update
 $('.custom-file-input').on('change', function() {
-    var fileName = this.files[0] ? this.files[0].name : 'Choose file';
-    $(this).next('.custom-file-label').text(fileName);
+    var count = this.files.length;
+    var label = count === 0 ? 'Choose file(s)' : (count === 1 ? this.files[0].name : count + ' files selected');
+    $(this).next('.custom-file-label').text(label);
 });
 
 function scrollBottom() { var b = document.getElementById('chat'); b.scrollTop = b.scrollHeight; }
@@ -432,14 +433,16 @@ setInterval(poll, 5000);
 $('#addForm').on('submit', function(e) {
     e.preventDefault();
     var msg = $('#comment').summernote('code');
-    var file = $('#file')[0].files[0];
-    if ($('#comment').summernote('isEmpty') && !file) return;
+    var files = $('#file')[0].files;
+    if ($('#comment').summernote('isEmpty') && !files.length) return;
 
     var fd = new FormData();
     fd.append('_token', $('meta[name="csrf-token"]').attr('content'));
     fd.append('message', msg);
     fd.append('reply_to_id', $('#replyToId').val() || '');
-    if (file) fd.append('file', file);
+    for (var i = 0; i < files.length; i++) {
+        fd.append('files[]', files[i]);
+    }
 
     var $btn = $('#addRowButton1');
     var originalHtml = $btn.html();
@@ -449,18 +452,20 @@ $('#addForm').on('submit', function(e) {
         url: postUrl, type: 'POST', data: fd, processData: false, contentType: false,
         success: function(res) {
             if (res.success) {
-                var chatData = res.chat || {
+                var chats = res.chats || (res.chat ? [res.chat] : [{
                     id: ++lastId,
                     sender_type: viewerType === 'staff' ? 'portal_user' : 'user',
                     sender_name: myName, message: msg, file_type: null, file_url: null,
                     reply_sender: null, reply_text: null,
                     created_at: new Date().toLocaleString('en-US', {month:'2-digit',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})
-                };
-                appendMessage(chatData);
-                if (chatData.id > lastId) lastId = chatData.id;
+                }]);
+                chats.forEach(function(chatData) {
+                    appendMessage(chatData);
+                    if (chatData.id > lastId) lastId = chatData.id;
+                });
                 $('#comment').summernote('reset');
                 $('#file').val('');
-                $('.custom-file-label').text('Choose file');
+                $('.custom-file-label').text('Choose file(s)');
                 clearReply();
                 scrollBottom();
             } else {
