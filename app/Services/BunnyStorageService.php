@@ -17,9 +17,9 @@ class BunnyStorageService
     public function __construct()
     {
         $this->storageZone = env('BUNNY_STORAGE_ZONE', '');
-        $this->apiKey      = env('BUNNY_STORAGE_API_KEY', '');
-        $this->hostname    = env('BUNNY_STORAGE_HOSTNAME', 'storage.bunnycdn.com');
-        $this->cdnHostname = env('BUNNY_CDN_HOSTNAME', '');
+        $this->apiKey      = env('BUNNY_STORAGE_KEY', env('BUNNY_STORAGE_API_KEY', ''));
+        $this->hostname    = env('BUNNY_STORAGE_HOST', env('BUNNY_STORAGE_HOSTNAME', 'storage.bunnycdn.com'));
+        $this->cdnHostname = env('BUNNY_STORAGE_PULL_ZONE', env('BUNNY_CDN_HOSTNAME', ''));
         $this->tokenKey    = env('BUNNY_TOKEN_KEY', '');
     }
 
