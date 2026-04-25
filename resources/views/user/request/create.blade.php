@@ -333,13 +333,14 @@
                     </div>
                     <div class="col-sm-12 form-group">
                         <label class="f-15">Additional Files</label>
-                        <div>
-                            <button type="button" class="upload-files-btn" onclick="document.getElementById('additionalFilesInput').click()">
-                                <i class="fas fa-plus"></i> Add Files
-                            </button>
-                            <input type="file" name="attachments[]" id="additionalFilesInput" class="d-none" accept="image/*,.pdf,.doc,.docx,video/mp4,video/quicktime,video/webm" multiple onchange="updateAdditionalFilesList(this)">
+                        <div id="additionalFilesContainer">
+                            <div class="additional-file-row mb-2">
+                                <input type="file" name="attachments[]" class="input_box additional-file-input" accept="image/*,.pdf,.doc,.docx,video/mp4,video/quicktime,video/webm">
+                            </div>
                         </div>
-                        <ul class="additional-files-list" id="additionalFilesList"></ul>
+                        <button type="button" class="upload-files-btn mt-2" onclick="addFileInput()">
+                            <i class="fas fa-plus"></i> Add File
+                        </button>
                     </div>
                     <div class="col-sm-12 form-group" id="additionalFeaturesGroup">
                         <label class="f-15">Additional Features <span class="text-danger">*</span></label>
@@ -624,29 +625,13 @@ function previewImg(input, previewId) {
 }
 
 // Additional files list (rendered after selection)
-function updateAdditionalFilesList(input) {
-    var $list = $('#additionalFilesList').empty();
-    if (!input.files || !input.files.length) return;
-    for (var i = 0; i < input.files.length; i++) {
-        var f = input.files[i];
-        var isImage = f.type.startsWith('image/');
-        var isVideo = f.type.startsWith('video/');
-        if (isVideo && f.size > 10 * 1024 * 1024) {
-            alert(f.name + ': Video files must be under 10MB');
-            continue;
-        }
-        if (!isVideo && f.size > 5 * 1024 * 1024) {
-            alert(f.name + ': Files must be under 5MB');
-            continue;
-        }
-        var icon = isVideo ? 'fa-video' : (isImage ? 'fa-image' : (f.name.endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-alt'));
-        var sizeKb = (f.size / 1024).toFixed(1);
-        $list.append('<li><i class="fas ' + icon + ' file-icon"></i><span>' + f.name + '</span><small class="text-muted">(' + sizeKb + ' KB)</small><span class="remove-file" onclick="clearAdditionalFiles()" title="Clear all">&times;</span></li>');
-    }
-}
-function clearAdditionalFiles() {
-    $('#additionalFilesInput').val('');
-    $('#additionalFilesList').empty();
+function addFileInput() {
+    var row = $('<div class="additional-file-row mb-2 d-flex align-items-center">' +
+        '<input type="file" name="attachments[]" class="input_box additional-file-input" accept="image/*,.pdf,.doc,.docx,video/mp4,video/quicktime,video/webm">' +
+        '<span class="remove-file-row text-danger ml-2" style="cursor:pointer;font-size:18px;" title="Remove">&times;</span>' +
+        '</div>');
+    row.find('.remove-file-row').on('click', function() { row.remove(); });
+    $('#additionalFilesContainer').append(row);
 }
 </script>
 @endpush
