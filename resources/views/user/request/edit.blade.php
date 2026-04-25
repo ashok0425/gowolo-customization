@@ -231,12 +231,8 @@
 
             {{-- Add new files --}}
             <div class="form-group">
-                <label>Upload Files <small class="text-muted">(images, videos, audio, docs — up to 1GB each)</small></label>
-                <div id="fileDropZone" class="file-drop-zone">
-                    <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
-                    <p class="mb-1">Drag & drop files here or click to browse</p>
-                    <input type="file" id="fileBrowseInput" class="d-none" multiple>
-                </div>
+                <label>Upload Files <small class="text-muted">(up to 1GB each)</small></label>
+                <input type="file" id="fileBrowseInput" class="form-control" multiple>
                 <div id="fileUploadList" class="mt-2"></div>
                 <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addMoreFilesBtn">
                     <i class="fas fa-plus mr-1"></i> Add File
@@ -254,12 +250,6 @@
 @push('css')
 <link href="{{ asset('common/vendor/summernote/summernote-bs4.min.css') }}" rel="stylesheet">
 <style>
-    .file-drop-zone {
-        border: 2px dashed #c9b3d9; border-radius: 12px; padding: 30px 20px;
-        text-align: center; cursor: pointer; transition: all 0.2s; background: #fdfaff;
-    }
-    .file-drop-zone:hover, .file-drop-zone.dragover { border-color: #662c87; background: #f9f3fc; }
-    .file-drop-zone p { color: #888; font-size: 14px; margin: 0; }
     .file-upload-item {
         display: flex; align-items: center; gap: 10px;
         padding: 8px 14px; margin-bottom: 6px;
@@ -307,12 +297,7 @@ var r = new Resumable({
     maxFileSizeErrorCallback: function(file) { alert(file.fileName + ' exceeds 1GB limit.'); }
 });
 if (r.support) {
-    var $zone = $('#fileDropZone');
     r.assignBrowse(document.getElementById('fileBrowseInput'));
-    r.assignDrop($zone[0]);
-    $zone.on('click', function() { $('#fileBrowseInput').click(); });
-    $zone.on('dragover', function() { $(this).addClass('dragover'); });
-    $zone.on('dragleave drop', function() { $(this).removeClass('dragover'); });
     $('#addMoreFilesBtn').on('click', function() { $('#fileBrowseInput').click(); });
 
     r.on('fileAdded', function(file) {

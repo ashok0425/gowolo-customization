@@ -148,21 +148,6 @@
     .additional-files-list li i.file-icon { color: #662c87; font-size: 16px; }
     .additional-files-list li .remove-file { margin-left: auto; color: #e74c3c; cursor: pointer; font-size: 16px; }
 
-    /* File upload drop zone */
-    .file-drop-zone {
-        border: 2px dashed #c9b3d9;
-        border-radius: 12px;
-        padding: 30px 20px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        background: #fdfaff;
-    }
-    .file-drop-zone:hover, .file-drop-zone.dragover {
-        border-color: #662c87;
-        background: #f9f3fc;
-    }
-    .file-drop-zone p { color: #888; font-size: 14px; margin: 0; }
     .file-upload-item {
         display: flex; align-items: center; gap: 10px;
         padding: 8px 14px; margin-bottom: 6px;
@@ -356,12 +341,8 @@
                 {{-- ============== Common uploads + additional features (shown for all types) ============== --}}
                 <div class="row mt-3">
                     <div class="col-sm-12 form-group">
-                        <label class="f-15">Upload Files <small class="text-muted">(images, videos, audio, docs — up to 1GB each)</small></label>
-                        <div id="fileDropZone" class="file-drop-zone">
-                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
-                            <p class="mb-1">Drag & drop files here or click to browse</p>
-                            <input type="file" id="fileBrowseInput" class="d-none" multiple>
-                        </div>
+                        <label class="f-15">Upload Files <small class="text-muted">(up to 1GB each)</small></label>
+                        <input type="file" id="fileBrowseInput" class="input_box" multiple>
                         <div id="fileUploadList" class="mt-2"></div>
                         <button type="button" class="upload-files-btn mt-2" id="addMoreFilesBtn">
                             <i class="fas fa-plus"></i> Add File
@@ -689,13 +670,7 @@ var r = new Resumable({
 });
 
 if (r.support) {
-    var $zone = $('#fileDropZone');
     r.assignBrowse(document.getElementById('fileBrowseInput'));
-    r.assignDrop($zone[0]);
-
-    $zone.on('click', function() { $('#fileBrowseInput').click(); });
-    $zone.on('dragover', function() { $(this).addClass('dragover'); });
-    $zone.on('dragleave drop', function() { $(this).removeClass('dragover'); });
 
     $('#addMoreFilesBtn').on('click', function() { $('#fileBrowseInput').click(); });
 
