@@ -107,25 +107,10 @@ class RequestController extends Controller
 
         $request->validate($rules);
 
-        // Validate file sizes: 5MB for non-video files (videos go through chunk upload)
-        $allFiles = [];
-        foreach (['logo', 'icon', 'app_background', 'cust_doc_file'] as $field) {
-            if ($request->hasFile($field)) {
-                $allFiles[] = $request->file($field);
-            }
-        }
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $f) {
-                $allFiles[] = $f;
-            }
-        }
-        foreach ($allFiles as $f) {
-            $isVideo = str_starts_with($f->getMimeType(), 'video/');
-            if ($isVideo) {
-                continue; // videos are uploaded via chunk upload, skip here
-            }
-            if ($f->getSize() > 5 * 1024 * 1024) {
-                return back()->withErrors(['attachments' => $f->getClientOriginalName() . " exceeds the 5MB limit."])->withInput();
+        // File size validation for non-chunked uploads (logo, icon, background)
+        foreach (['logo', 'icon', 'app_background'] as $field) {
+            if ($request->hasFile($field) && $request->file($field)->getSize() > 5 * 1024 * 1024) {
+                return back()->withErrors([$field => $request->file($field)->getClientOriginalName() . ' exceeds the 5MB limit.'])->withInput();
             }
         }
 
@@ -172,33 +157,30 @@ class RequestController extends Controller
             }
         }
 
-        foreach (['logo', 'icon', 'app_background', 'document'] as $category) {
+        // Store logo/icon/background via traditional upload
+        foreach (['logo', 'icon', 'app_background'] as $category) {
             if ($request->hasFile($category)) {
                 $this->storeFile($request->file($category), $custRequest->id, $category, $ssoUser['user_id']);
             }
         }
 
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $this->storeFile($file, $custRequest->id, 'attachment', $ssoUser['user_id']);
+        // Link all chunked file uploads (stored in session during upload)
+        if ($uploads = session('pending_chunk_uploads')) {
+            foreach ($uploads as $fileData) {
+                CustomizationFile::create([
+                    'request_id'       => $custRequest->id,
+                    'uploaded_by_type' => 'user',
+                    'uploaded_by_id'   => $ssoUser['user_id'],
+                    'file_category'    => $fileData['file_category'],
+                    'original_name'    => $fileData['original_name'],
+                    'extension'        => $fileData['extension'],
+                    'size_bytes'       => $fileData['size_bytes'],
+                    'bunny_path'       => $fileData['bunny_path'],
+                    'bunny_synced'     => $fileData['bunny_synced'],
+                    'local_path'       => $fileData['local_path'],
+                ]);
             }
-        }
-
-        // Link chunked video upload (uploaded before form submit, stored in session)
-        if ($videoData = session('pending_video_upload')) {
-            CustomizationFile::create([
-                'request_id'       => $custRequest->id,
-                'uploaded_by_type' => 'user',
-                'uploaded_by_id'   => $ssoUser['user_id'],
-                'file_category'    => 'video',
-                'original_name'    => $videoData['original_name'],
-                'extension'        => $videoData['extension'],
-                'size_bytes'       => $videoData['size_bytes'],
-                'bunny_path'       => $videoData['bunny_path'],
-                'bunny_synced'     => $videoData['bunny_synced'],
-                'local_path'       => $videoData['local_path'],
-            ]);
-            session()->forget('pending_video_upload');
+            session()->forget('pending_chunk_uploads');
         }
 
         activity('customization')
@@ -341,36 +323,25 @@ class RequestController extends Controller
             }
         }
 
-        // Handle new file uploads
+        // Link chunked file uploads from session
         $ssoUser = session('auth_user');
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $f) {
-                $isVideo = str_starts_with($f->getMimeType(), 'video/');
-                if (!$isVideo && $f->getSize() > 5 * 1024 * 1024) {
-                    return back()->withErrors(['attachments' => $f->getClientOriginalName() . ' exceeds the 5MB limit.'])->withInput();
-                }
-                if ($isVideo) continue; // videos go through chunk upload
-                $this->storeFile($f, $customizationRequest->id, 'attachment', $ssoUser['user_id']);
+        if ($uploads = session('pending_chunk_uploads')) {
+            foreach ($uploads as $fileData) {
+                CustomizationFile::create([
+                    'request_id'       => $customizationRequest->id,
+                    'uploaded_by_type' => 'user',
+                    'uploaded_by_id'   => $ssoUser['user_id'],
+                    'file_category'    => $fileData['file_category'],
+                    'original_name'    => $fileData['original_name'],
+                    'extension'        => $fileData['extension'],
+                    'size_bytes'       => $fileData['size_bytes'],
+                    'bunny_path'       => $fileData['bunny_path'],
+                    'bunny_synced'     => $fileData['bunny_synced'],
+                    'local_path'       => $fileData['local_path'],
+                ]);
             }
-            $changed['files_added'] = 'New files uploaded';
-        }
-
-        // Link chunked video upload from session
-        if ($videoData = session('pending_video_upload')) {
-            CustomizationFile::create([
-                'request_id'       => $customizationRequest->id,
-                'uploaded_by_type' => 'user',
-                'uploaded_by_id'   => $ssoUser['user_id'],
-                'file_category'    => 'video',
-                'original_name'    => $videoData['original_name'],
-                'extension'        => $videoData['extension'],
-                'size_bytes'       => $videoData['size_bytes'],
-                'bunny_path'       => $videoData['bunny_path'],
-                'bunny_synced'     => $videoData['bunny_synced'],
-                'local_path'       => $videoData['local_path'],
-            ]);
-            session()->forget('pending_video_upload');
-            $changed['video_added'] = 'Video uploaded';
+            session()->forget('pending_chunk_uploads');
+            $changed['files_added'] = count($uploads) . ' file(s) uploaded';
         }
 
         if (!empty($changed)) {

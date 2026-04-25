@@ -46,16 +46,9 @@ class ChunkUploadController extends Controller
         $filename    = $request->get('resumableFilename');
         $totalChunks = (int) $request->get('resumableTotalChunks');
         $totalSize   = (int) $request->get('resumableTotalSize');
-        $requestId   = $request->get('request_id');
 
         if (!$file || !$chunkNumber || !$identifier || !$filename || !$totalChunks) {
             return response()->json(['error' => 'Missing required parameters'], 400);
-        }
-
-        // Only allow video files
-        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        if (!in_array($ext, ['mp4', 'mov', 'webm'])) {
-            return response()->json(['error' => 'Only MP4, MOV and WebM video files are supported'], 415);
         }
 
         // 1GB limit
@@ -66,7 +59,6 @@ class ChunkUploadController extends Controller
         $chunkDir  = storage_path("app/chunks/{$identifier}");
         $chunkPath = "{$chunkDir}/chunk{$chunkNumber}";
 
-        // Clean up previous attempt on first chunk
         if ((int) $chunkNumber === 1 && file_exists($chunkDir)) {
             $this->cleanupChunks($chunkDir);
         }
@@ -84,7 +76,7 @@ class ChunkUploadController extends Controller
         $uploadedCount = count(glob("{$chunkDir}/chunk*"));
 
         if ($uploadedCount == $totalChunks) {
-            return $this->mergeAndUpload($identifier, $filename, $totalChunks, $chunkDir, $requestId, $bunny);
+            return $this->mergeAndUpload($identifier, $filename, $totalChunks, $chunkDir, $bunny);
         }
 
         return response()->json([
@@ -94,13 +86,13 @@ class ChunkUploadController extends Controller
         ]);
     }
 
-    private function mergeAndUpload(string $identifier, string $filename, int $totalChunks, string $chunkDir, ?string $requestId, BunnyStorageService $bunny)
+    private function mergeAndUpload(string $identifier, string $filename, int $totalChunks, string $chunkDir, BunnyStorageService $bunny)
     {
         set_time_limit(0);
         ini_set('memory_limit', '512M');
 
-        $ext       = pathinfo($filename, PATHINFO_EXTENSION);
-        $tempFile  = storage_path("app/chunks/{$identifier}_merged.{$ext}");
+        $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $tempFile = storage_path("app/chunks/{$identifier}_merged.{$ext}");
 
         try {
             $final = fopen($tempFile, 'wb');
@@ -124,48 +116,55 @@ class ChunkUploadController extends Controller
             $fileSize = filesize($tempFile) ?: 0;
             $this->cleanupChunks($chunkDir);
 
+            // Determine category from extension
+            $category = 'attachment';
+            if (in_array($ext, ['mp4', 'mov', 'webm', 'avi', 'mkv'])) $category = 'video';
+            elseif (in_array($ext, ['mp3', 'wav', 'ogg', 'aac', 'flac'])) $category = 'audio';
+            elseif (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) $category = 'image';
+            elseif (in_array($ext, ['pdf', 'doc', 'docx'])) $category = 'document';
+
+            $folder = "requests/{$category}s";
+
             // Upload to Bunny CDN or save locally
-            $ssoUser    = session('auth_user');
-            $bunnyPath  = null;
-            $localPath  = null;
-            $cdnUrl     = null;
+            $ssoUser   = session('auth_user');
+            $bunnyPath = null;
+            $localPath = null;
 
             if ($bunny->isConfigured()) {
                 try {
-                    $bunnyPath = $bunny->uploadFromPath($tempFile, 'requests/videos');
-                    $cdnUrl    = $bunny->cdnUrl($bunnyPath);
+                    $bunnyPath = $bunny->uploadFromPath($tempFile, $folder);
                 } catch (\Exception $e) {
-                    Log::warning('Bunny video upload failed, saving locally: ' . $e->getMessage());
+                    Log::warning('Bunny upload failed, saving locally: ' . $e->getMessage());
                 }
             }
 
             if (!$bunnyPath) {
                 $localName = time() . '_' . uniqid() . '.' . $ext;
-                $localDir  = public_path('uploads/requests/videos');
+                $localDir  = public_path("uploads/{$folder}");
                 if (!file_exists($localDir)) {
                     mkdir($localDir, 0755, true);
                 }
                 copy($tempFile, "{$localDir}/{$localName}");
-                $localPath = "/uploads/requests/videos/{$localName}";
+                $localPath = "/uploads/{$folder}/{$localName}";
             }
 
             @unlink($tempFile);
 
-            // Store video info in session for linking after form submit
-            $videoData = [
+            // Append to session array for linking after form submit
+            $uploads = session('pending_chunk_uploads', []);
+            $uploads[] = [
                 'original_name' => $filename,
-                'extension'     => strtolower($ext),
+                'extension'     => $ext,
                 'size_bytes'    => $fileSize,
+                'file_category' => $category,
                 'bunny_path'    => $bunnyPath,
                 'bunny_synced'  => $bunnyPath ? true : false,
                 'local_path'    => $localPath,
-                'uploaded_at'   => now()->toDateTimeString(),
             ];
-            session(['pending_video_upload' => $videoData]);
+            session(['pending_chunk_uploads' => $uploads]);
 
             return response()->json([
                 'status'    => 'upload_complete',
-                'cdn_url'   => $cdnUrl,
                 'file_name' => $filename,
             ]);
         } catch (\Exception $e) {

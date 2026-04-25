@@ -148,8 +148,8 @@
     .additional-files-list li i.file-icon { color: #662c87; font-size: 16px; }
     .additional-files-list li .remove-file { margin-left: auto; color: #e74c3c; cursor: pointer; font-size: 16px; }
 
-    /* Video upload drop zone */
-    .video-drop-zone {
+    /* File upload drop zone */
+    .file-drop-zone {
         border: 2px dashed #c9b3d9;
         border-radius: 12px;
         padding: 30px 20px;
@@ -158,11 +158,22 @@
         transition: all 0.2s;
         background: #fdfaff;
     }
-    .video-drop-zone:hover, .video-drop-zone.dragover {
+    .file-drop-zone:hover, .file-drop-zone.dragover {
         border-color: #662c87;
         background: #f9f3fc;
     }
-    .video-drop-zone p { color: #888; font-size: 14px; margin: 0; }
+    .file-drop-zone p { color: #888; font-size: 14px; margin: 0; }
+    .file-upload-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 14px; margin-bottom: 6px;
+        background: #f9f3fc; border: 1px solid #e6d5ef; border-radius: 10px; font-size: 13px;
+    }
+    .file-upload-item .progress { flex: 1; height: 6px; border-radius: 3px; margin: 0; }
+    .file-upload-item .file-pct { min-width: 38px; text-align: right; font-weight: 600; font-size: 12px; }
+    .file-upload-item .file-remove { color: #e74c3c; cursor: pointer; font-size: 16px; margin-left: auto; }
+    .file-upload-item .file-icon { color: #662c87; font-size: 16px; min-width: 18px; }
+    .file-upload-item.upload-done { background: #eafaf1; border-color: #b2dfdb; }
+    .file-upload-item.upload-error { background: #fdecea; border-color: #f5c6cb; }
 </style>
 @endpush
 
@@ -345,41 +356,16 @@
                 {{-- ============== Common uploads + additional features (shown for all types) ============== --}}
                 <div class="row mt-3">
                     <div class="col-sm-12 form-group">
-                        <label class="f-15">Upload Document</label>
-                        <input type="file" name="cust_doc_file" class="input_box" accept=".pdf,.doc,.docx,image/*,video/mp4,video/quicktime,video/webm">
-                    </div>
-                    <div class="col-sm-12 form-group">
-                        <label class="f-15">Additional Files</label>
-                        <div id="additionalFilesContainer">
-                            <div class="additional-file-row mb-2">
-                                <input type="file" name="attachments[]" class="input_box additional-file-input" accept="image/*,.pdf,.doc,.docx,video/mp4,video/quicktime,video/webm">
-                            </div>
+                        <label class="f-15">Upload Files <small class="text-muted">(images, videos, audio, docs — up to 1GB each)</small></label>
+                        <div id="fileDropZone" class="file-drop-zone">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                            <p class="mb-1">Drag & drop files here or click to browse</p>
+                            <input type="file" id="fileBrowseInput" class="d-none" multiple>
                         </div>
-                        <button type="button" class="upload-files-btn mt-2" onclick="addFileInput()">
+                        <div id="fileUploadList" class="mt-2"></div>
+                        <button type="button" class="upload-files-btn mt-2" id="addMoreFilesBtn">
                             <i class="fas fa-plus"></i> Add File
                         </button>
-                    </div>
-                    <div class="col-sm-12 form-group">
-                        <label class="f-15">Upload Video <small class="text-muted">(up to 1GB — MP4, MOV, WebM)</small></label>
-                        <div id="videoDropZone" class="video-drop-zone">
-                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
-                            <p class="mb-1">Drag & drop video here or click to browse</p>
-                            <input type="file" id="videoFileInput" accept="video/mp4,video/quicktime,video/webm" class="d-none">
-                        </div>
-                        <div id="videoProgressWrap" style="display:none;" class="mt-2">
-                            <div class="d-flex justify-content-between mb-1">
-                                <small id="videoFileName" class="text-muted"></small>
-                                <small id="videoPercent" class="font-weight-bold">0%</small>
-                            </div>
-                            <div class="progress" style="height:8px;border-radius:4px;">
-                                <div id="videoProgressBar" class="progress-bar bg-primary" role="progressbar" style="width:0%"></div>
-                            </div>
-                            <small id="videoStatus" class="text-muted mt-1 d-block"></small>
-                        </div>
-                        <div id="videoComplete" style="display:none;" class="mt-2 alert alert-success py-2 px-3 mb-0">
-                            <i class="fas fa-check-circle mr-1"></i> <span id="videoCompleteName"></span> uploaded successfully
-                            <span class="float-right text-danger" style="cursor:pointer;" onclick="removeVideo()"><i class="fas fa-times"></i></span>
-                        </div>
                     </div>
                     <div class="col-sm-12 form-group" id="additionalFeaturesGroup">
                         <label class="f-15">Additional Features <span class="text-danger">*</span></label>
@@ -663,16 +649,6 @@ function previewImg(input, previewId) {
     }
 }
 
-// Additional files list (rendered after selection)
-function addFileInput() {
-    var row = $('<div class="additional-file-row mb-2 d-flex align-items-center">' +
-        '<input type="file" name="attachments[]" class="input_box additional-file-input" accept="image/*,.pdf,.doc,.docx,video/mp4,video/quicktime,video/webm">' +
-        '<span class="remove-file-row text-danger ml-2" style="cursor:pointer;font-size:18px;" title="Remove">&times;</span>' +
-        '</div>');
-    row.find('.remove-file-row').on('click', function() { row.remove(); });
-    $('#additionalFilesContainer').append(row);
-}
-
 
 </script>
 <script src="{{ asset('common/vendor/summernote/summernote-bs4.min.js') }}"></script>
@@ -690,85 +666,98 @@ $('#requirement4Editor').summernote({
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
 <script>
-// ── Chunked Video Upload with Resumable.js ──
-var videoUploadBusy = false;
+// ── Unified Chunked File Upload ──
+var uploadingCount = 0;
+
+function fileIcon(name) {
+    var ext = name.split('.').pop().toLowerCase();
+    if (['jpg','jpeg','png','gif','webp','svg'].indexOf(ext) > -1) return 'fa-image';
+    if (['mp4','mov','webm','avi','mkv'].indexOf(ext) > -1) return 'fa-video';
+    if (['mp3','wav','ogg','aac','flac'].indexOf(ext) > -1) return 'fa-music';
+    if (ext === 'pdf') return 'fa-file-pdf';
+    if (['doc','docx'].indexOf(ext) > -1) return 'fa-file-word';
+    return 'fa-file-alt';
+}
 
 var r = new Resumable({
     target: '{{ route("user.chunk.upload") }}',
-    chunkSize: 2 * 1024 * 1024, // 2MB chunks
+    chunkSize: 2 * 1024 * 1024,
     simultaneousUploads: 3,
     testChunks: true,
-    fileType: ['mp4', 'mov', 'webm'],
-    maxFileSize: 1 * 1024 * 1024 * 1024, // 1GB
-    fileTypeErrorCallback: function() { alert('Only MP4, MOV and WebM video files are allowed.'); },
-    maxFileSizeErrorCallback: function() { alert('Video file must be under 1GB.'); }
+    maxFileSize: 1 * 1024 * 1024 * 1024,
+    maxFileSizeErrorCallback: function(file) { alert(file.fileName + ' exceeds 1GB limit.'); }
 });
 
 if (r.support) {
-    var $zone = $('#videoDropZone');
-    r.assignBrowse(document.getElementById('videoFileInput'));
+    var $zone = $('#fileDropZone');
+    r.assignBrowse(document.getElementById('fileBrowseInput'));
     r.assignDrop($zone[0]);
 
-    $zone.on('click', function() { $('#videoFileInput').click(); });
+    $zone.on('click', function() { $('#fileBrowseInput').click(); });
     $zone.on('dragover', function() { $(this).addClass('dragover'); });
     $zone.on('dragleave drop', function() { $(this).removeClass('dragover'); });
 
+    $('#addMoreFilesBtn').on('click', function() { $('#fileBrowseInput').click(); });
+
     r.on('fileAdded', function(file) {
-        if (videoUploadBusy) {
-            alert('Please wait for the current video to finish uploading.');
-            r.removeFile(file);
-            return;
-        }
-        videoUploadBusy = true;
-        $('#videoDropZone').hide();
-        $('#videoComplete').hide();
-        $('#videoProgressWrap').show();
-        $('#videoFileName').text(file.fileName);
-        $('#videoPercent').text('0%');
-        $('#videoProgressBar').css('width', '0%');
-        $('#videoStatus').text('Uploading...');
+        uploadingCount++;
+        var uid = file.uniqueIdentifier;
+        var sizeLabel = file.size > 1048576
+            ? (file.size / 1048576).toFixed(1) + ' MB'
+            : (file.size / 1024).toFixed(1) + ' KB';
+        var html = '<div class="file-upload-item" id="fu-' + uid + '">' +
+            '<i class="fas ' + fileIcon(file.fileName) + ' file-icon"></i>' +
+            '<span class="file-name" style="min-width:120px;">' + file.fileName + '</span>' +
+            '<small class="text-muted">(' + sizeLabel + ')</small>' +
+            '<div class="progress"><div class="progress-bar bg-primary" style="width:0%"></div></div>' +
+            '<span class="file-pct">0%</span>' +
+            '<span class="file-remove" data-uid="' + uid + '" title="Remove">&times;</span>' +
+            '</div>';
+        $('#fileUploadList').append(html);
         r.upload();
     });
 
     r.on('fileProgress', function(file) {
         var pct = Math.floor(file.progress() * 100);
-        $('#videoPercent').text(pct + '%');
-        $('#videoProgressBar').css('width', pct + '%');
-        if (pct >= 100) {
-            $('#videoStatus').text('Merging & uploading to CDN...');
-        }
+        var $row = $('#fu-' + file.uniqueIdentifier);
+        $row.find('.progress-bar').css('width', pct + '%');
+        $row.find('.file-pct').text(pct + '%');
+        if (pct >= 100) $row.find('.file-pct').text('Processing...');
     });
 
-    r.on('fileSuccess', function(file, response) {
-        videoUploadBusy = false;
-        var data = JSON.parse(response);
-        $('#videoProgressWrap').hide();
-        $('#videoComplete').show();
-        $('#videoCompleteName').text(file.fileName);
-        r.removeFile(file);
+    r.on('fileSuccess', function(file) {
+        uploadingCount--;
+        var $row = $('#fu-' + file.uniqueIdentifier);
+        $row.addClass('upload-done');
+        $row.find('.progress-bar').addClass('bg-success').css('width', '100%');
+        $row.find('.file-pct').html('<i class="fas fa-check text-success"></i>');
     });
 
     r.on('fileError', function(file, response) {
-        videoUploadBusy = false;
-        var msg = 'Upload failed.';
+        uploadingCount--;
+        var msg = 'Upload failed';
         try { msg = JSON.parse(response).error || msg; } catch(e) {}
-        alert(msg);
-        $('#videoProgressWrap').hide();
-        $('#videoDropZone').show();
-        r.removeFile(file);
+        var $row = $('#fu-' + file.uniqueIdentifier);
+        $row.addClass('upload-error');
+        $row.find('.progress-bar').addClass('bg-danger').css('width', '100%');
+        $row.find('.file-pct').html('<i class="fas fa-times text-danger" title="' + msg + '"></i>');
+    });
+
+    $(document).on('click', '.file-remove', function() {
+        var uid = $(this).data('uid');
+        var file = r.getFromUniqueIdentifier(uid);
+        if (file) {
+            if (file.isUploading()) uploadingCount--;
+            r.removeFile(file);
+        }
+        $('#fu-' + uid).remove();
     });
 }
 
-function removeVideo() {
-    $('#videoComplete').hide();
-    $('#videoDropZone').show();
-}
-
-// Block form submit while video is uploading
 $('#request-form').on('submit', function(e) {
-    if (videoUploadBusy) {
+    if (uploadingCount > 0) {
         e.preventDefault();
-        alert('Please wait for the video upload to complete before submitting.');
+        alert('Please wait for all file uploads to complete before submitting.');
         return false;
     }
 });
