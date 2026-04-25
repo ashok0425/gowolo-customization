@@ -41,6 +41,10 @@ class ChatController extends Controller
             'files'       => 'nullable|array|max:10',
             'files.*'     => 'file|mimes:jpeg,png,jpg,gif,pdf,doc,docx|max:10240',
             'reply_to_id' => 'nullable|integer|exists:customization_chats,id',
+        ], [
+            'files.*.mimes' => 'Only image (JPEG, PNG, GIF), PDF, and DOC/DOCX files are allowed.',
+            'files.*.max'   => 'Each file must be less than 10 MB.',
+            'files.max'     => 'You can upload a maximum of 10 files at once.',
         ]);
 
         $ssoUser = session('auth_user');

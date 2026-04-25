@@ -60,6 +60,10 @@ class ChatController extends Controller
             'files'       => 'nullable|array|max:10',
             'files.*'     => 'file|mimes:jpeg,png,jpg,gif,pdf,doc,docx,mp4|max:20480',
             'reply_to_id' => 'nullable|integer|exists:customization_chats,id',
+        ], [
+            'files.*.mimes' => 'Only image (JPEG, PNG, GIF), PDF, DOC/DOCX, and MP4 files are allowed.',
+            'files.*.max'   => 'Each file must be less than 20 MB.',
+            'files.max'     => 'You can upload a maximum of 10 files at once.',
         ]);
 
         $files = $request->file('files', []);

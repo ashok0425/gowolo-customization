@@ -280,6 +280,8 @@
                     <label class="custom-file-label" for="file">Choose file(s)</label>
                 </div>
             </div>
+
+            <div id="chatError" class="alert alert-danger mt-2" style="display:none; font-size:13px;"></div>
         </div>
 
         <div class="d-flex align-items-center justify-content-center pb-3">
@@ -429,6 +431,11 @@ function poll() {
 }
 setInterval(poll, 5000);
 
+function showChatError(msg) {
+    $('#chatError').html(msg).show();
+    setTimeout(function() { $('#chatError').fadeOut(); }, 6000);
+}
+
 // Submit
 $('#addForm').on('submit', function(e) {
     e.preventDefault();
@@ -463,17 +470,25 @@ $('#addForm').on('submit', function(e) {
                     appendMessage(chatData);
                     if (chatData.id > lastId) lastId = chatData.id;
                 });
+                $('#chatError').hide();
                 $('#comment').summernote('reset');
                 $('#file').val('');
                 $('.custom-file-label').text('Choose file(s)');
                 clearReply();
                 scrollBottom();
             } else {
-                alert('Failed to send message. Please try again.');
+                showChatError('Failed to send message. Please try again.');
             }
         },
         error: function(xhr) {
-            alert(xhr.responseJSON?.message || 'Failed to send message. Please try again.');
+            var res = xhr.responseJSON;
+            if (res && res.errors) {
+                var msgs = [];
+                $.each(res.errors, function(key, val) { msgs = msgs.concat(val); });
+                showChatError(msgs.join('<br>'));
+            } else {
+                showChatError(res?.message || 'Failed to send message. Please try again.');
+            }
         },
         complete: function() {
             $btn.prop('disabled', false).html(originalHtml);
