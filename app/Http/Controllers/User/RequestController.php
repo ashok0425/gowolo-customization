@@ -330,6 +330,28 @@ class RequestController extends Controller
         }
     }
 
+    public function downloadFile(string $cuid, CustomizationFile $file)
+    {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+        $this->authorizeSsoUser($customizationRequest);
+
+        abort_unless($file->request_id === $customizationRequest->id, 404);
+
+        $bunny = app(BunnyStorageService::class);
+
+        if ($file->bunny_path && $bunny->isConfigured()) {
+            return redirect($bunny->signedUrl($file->bunny_path));
+        }
+
+        if ($file->local_path) {
+            $path = public_path(ltrim($file->local_path, '/'));
+            abort_unless(file_exists($path), 404);
+            return response()->download($path, $file->original_name);
+        }
+
+        abort(404);
+    }
+
     private function authorizeSsoUser(CustomizationRequest $request): void
     {
         if ($request->user_id != session('auth_user.user_id')) {

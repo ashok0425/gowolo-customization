@@ -98,19 +98,57 @@
         <div class="card">
             <div class="card-header"><h4 class="card-title">Uploaded Files</h4></div>
             <div class="card-body">
+                @php $bunny = app(\App\Services\BunnyStorageService::class); @endphp
                 <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead><tr><th>File</th><th>Category</th><th>Size</th></tr></thead>
+                    <table class="table table-sm align-middle">
+                        <thead><tr><th>Preview</th><th>File</th><th>Category</th><th>Size</th><th>Action</th></tr></thead>
                         <tbody>
                             @foreach($customizationRequest->files as $file)
+                            @php
+                                $fileUrl = null;
+                                if ($file->bunny_path && $bunny->isConfigured()) {
+                                    $fileUrl = $bunny->signedUrl($file->bunny_path);
+                                } elseif ($file->local_path) {
+                                    $fileUrl = asset($file->local_path);
+                                }
+                            @endphp
                             <tr>
+                                <td style="width:80px;">
+                                    @if($file->is_image && $fileUrl)
+                                        <a href="#" class="imgfile" data-toggle="modal" data-id="{{ $fileUrl }}">
+                                            <img src="{{ $fileUrl }}" alt="{{ $file->original_name }}" style="max-width:60px;max-height:60px;border-radius:4px;cursor:pointer;">
+                                        </a>
+                                    @elseif($file->is_pdf)
+                                        <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                    @else
+                                        <i class="fas fa-file fa-2x text-secondary"></i>
+                                    @endif
+                                </td>
                                 <td>{{ $file->original_name }}</td>
                                 <td><span class="badge badge-secondary">{{ $file->file_category }}</span></td>
                                 <td>{{ number_format($file->size_bytes / 1024, 1) }} KB</td>
+                                <td>
+                                    <a href="{{ route('admin.requests.file.download', [$customizationRequest->cuid, $file->id]) }}" class="btn btn-sm btn-outline-primary" title="Download">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        {{-- Image preview modal --}}
+        <div class="modal fade" id="filePreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Image Preview</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body text-center" id="filePreviewBody"></div>
                 </div>
             </div>
         </div>
@@ -176,3 +214,13 @@
 </div>
 @endsection
 
+@push('js')
+<script>
+$(document).on('click', '.imgfile', function(e) {
+    e.preventDefault();
+    var src = $(this).attr('data-id');
+    $('#filePreviewBody').html('<img src="' + src + '" style="max-width:100%;height:auto;">');
+    $('#filePreviewModal').modal('show');
+});
+</script>
+@endpush

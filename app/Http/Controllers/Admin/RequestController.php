@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\RequestNotificationMail;
 use App\Models\CustomizationAnswer;
+use App\Models\CustomizationFile;
 use App\Models\CustomizationRequest;
 use App\Models\PortalUser;
+use App\Services\BunnyStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -357,6 +359,38 @@ class RequestController extends Controller
 
         return redirect()->route('admin.requests.show', $customizationRequest)
             ->with('success', 'Request updated successfully.');
+    }
+
+    public function downloadFile(string $cuid, CustomizationFile $file)
+    {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+
+        $user   = Auth::guard('portal')->user();
+        $seeAll = $user->hasPermissionTo('view_all_requests');
+
+        if (!$seeAll) {
+            abort_unless(
+                $customizationRequest->assigned_tech_id1 == $user->id ||
+                $customizationRequest->assigned_tech_id2 == $user->id,
+                403
+            );
+        }
+
+        abort_unless($file->request_id === $customizationRequest->id, 404);
+
+        $bunny = app(BunnyStorageService::class);
+
+        if ($file->bunny_path && $bunny->isConfigured()) {
+            return redirect($bunny->signedUrl($file->bunny_path));
+        }
+
+        if ($file->local_path) {
+            $path = public_path(ltrim($file->local_path, '/'));
+            abort_unless(file_exists($path), 404);
+            return response()->download($path, $file->original_name);
+        }
+
+        abort(404);
     }
 
     private function calcBusinessDays($start, $end): int
