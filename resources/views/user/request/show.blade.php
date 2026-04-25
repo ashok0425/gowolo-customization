@@ -112,6 +112,10 @@
                                         <a href="#" class="imgfile" data-toggle="modal" data-id="{{ $fileUrl }}">
                                             <img src="{{ $fileUrl }}" alt="{{ $file->original_name }}" style="max-width:60px;max-height:60px;border-radius:4px;cursor:pointer;">
                                         </a>
+                                    @elseif($file->is_video && $fileUrl)
+                                        <a href="#" class="videofile" data-toggle="modal" data-url="{{ $fileUrl }}">
+                                            <i class="fas fa-video fa-2x text-primary" style="cursor:pointer;"></i>
+                                        </a>
                                     @elseif($file->is_pdf)
                                         <i class="fas fa-file-pdf fa-2x text-danger"></i>
                                     @else
@@ -139,7 +143,7 @@
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Image Preview</h5>
+                        <h5 class="modal-title">File Preview</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
                     <div class="modal-body text-center" id="filePreviewBody"></div>
@@ -268,6 +272,15 @@ $(document).on('click', '.imgfile', function(e) {
     var src = $(this).attr('data-id');
     $('#filePreviewBody').html('<img src="' + src + '" style="max-width:100%;height:auto;">');
     $('#filePreviewModal').modal('show');
+});
+$(document).on('click', '.videofile', function(e) {
+    e.preventDefault();
+    var src = $(this).attr('data-url');
+    $('#filePreviewBody').html('<video controls style="max-width:100%;height:auto;"><source src="' + src + '">Your browser does not support video playback.</video>');
+    $('#filePreviewModal').modal('show');
+});
+$('#filePreviewModal').on('hidden.bs.modal', function() {
+    $('#filePreviewBody').find('video').each(function() { this.pause(); });
 });
 </script>
 @endpush

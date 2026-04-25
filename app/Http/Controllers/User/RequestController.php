@@ -107,6 +107,27 @@ class RequestController extends Controller
 
         $request->validate($rules);
 
+        // Validate file sizes: 10MB for videos, 5MB for others
+        $allFiles = [];
+        foreach (['logo', 'icon', 'app_background', 'cust_doc_file'] as $field) {
+            if ($request->hasFile($field)) {
+                $allFiles[] = $request->file($field);
+            }
+        }
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $f) {
+                $allFiles[] = $f;
+            }
+        }
+        foreach ($allFiles as $f) {
+            $isVideo = str_starts_with($f->getMimeType(), 'video/');
+            $maxBytes = $isVideo ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+            $maxLabel = $isVideo ? '10MB' : '5MB';
+            if ($f->getSize() > $maxBytes) {
+                return back()->withErrors(['attachments' => $f->getClientOriginalName() . " exceeds the {$maxLabel} limit."])->withInput();
+            }
+        }
+
         $ssoUser   = session('auth_user');
         $lastId    = CustomizationRequest::max('id') ?? 0;
         $refNumber = 'REQ' . date('mY') . ($lastId + 1);

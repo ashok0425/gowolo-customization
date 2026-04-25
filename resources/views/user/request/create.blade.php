@@ -329,7 +329,7 @@
                 <div class="row mt-3">
                     <div class="col-sm-12 form-group">
                         <label class="f-15">Upload Document</label>
-                        <input type="file" name="cust_doc_file" class="input_box" accept=".pdf,.doc,.docx,image/*">
+                        <input type="file" name="cust_doc_file" class="input_box" accept=".pdf,.doc,.docx,image/*,video/mp4,video/quicktime,video/webm">
                     </div>
                     <div class="col-sm-12 form-group">
                         <label class="f-15">Additional Files</label>
@@ -337,7 +337,7 @@
                             <button type="button" class="upload-files-btn" onclick="document.getElementById('additionalFilesInput').click()">
                                 <i class="fas fa-plus"></i> Add Files
                             </button>
-                            <input type="file" name="attachments[]" id="additionalFilesInput" class="d-none" accept="image/*,.pdf,.doc,.docx" multiple onchange="updateAdditionalFilesList(this)">
+                            <input type="file" name="attachments[]" id="additionalFilesInput" class="d-none" accept="image/*,.pdf,.doc,.docx,video/mp4,video/quicktime,video/webm" multiple onchange="updateAdditionalFilesList(this)">
                         </div>
                         <ul class="additional-files-list" id="additionalFilesList"></ul>
                     </div>
@@ -630,7 +630,16 @@ function updateAdditionalFilesList(input) {
     for (var i = 0; i < input.files.length; i++) {
         var f = input.files[i];
         var isImage = f.type.startsWith('image/');
-        var icon = isImage ? 'fa-image' : (f.name.endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-alt');
+        var isVideo = f.type.startsWith('video/');
+        if (isVideo && f.size > 10 * 1024 * 1024) {
+            alert(f.name + ': Video files must be under 10MB');
+            continue;
+        }
+        if (!isVideo && f.size > 5 * 1024 * 1024) {
+            alert(f.name + ': Files must be under 5MB');
+            continue;
+        }
+        var icon = isVideo ? 'fa-video' : (isImage ? 'fa-image' : (f.name.endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-alt'));
         var sizeKb = (f.size / 1024).toFixed(1);
         $list.append('<li><i class="fas ' + icon + ' file-icon"></i><span>' + f.name + '</span><small class="text-muted">(' + sizeKb + ' KB)</small><span class="remove-file" onclick="clearAdditionalFiles()" title="Clear all">&times;</span></li>');
     }

@@ -31,4 +31,9 @@ class CustomizationFile extends Model
     {
         return strtolower($this->extension) === 'pdf';
     }
+
+    public function getIsVideoAttribute(): bool
+    {
+        return in_array(strtolower($this->extension), ['mp4', 'mov', 'webm', 'avi']);
+    }
 }
