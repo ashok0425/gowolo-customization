@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\UserLoginController;
 use App\Http\Controllers\User;
 use App\Http\Controllers\Api\ChatPollController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\User\ChunkUploadController;
 use Illuminate\Support\Facades\Route;
 
 // Public root
@@ -86,6 +87,9 @@ Route::middleware('sso.auth')->prefix('request')->name('user.')->group(function 
     Route::get('/{cuid}',         [User\RequestController::class, 'show'])->name('request.show');
     Route::get('/{cuid}/chat',    [User\ChatController::class, 'show'])->name('chat.show');
     Route::post('/{cuid}/chat',   [User\ChatController::class, 'store'])->name('chat.store');
+
+    // Chunked video upload
+    Route::match(['get', 'post'], '/chunk-upload', [ChunkUploadController::class, 'upload'])->name('chunk.upload');
 });
 
 // Chat polling API

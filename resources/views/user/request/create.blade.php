@@ -2,6 +2,7 @@
 @section('title', 'New Customization Request')
 
 @push('css')
+<link href="{{ asset('common/vendor/summernote/summernote-bs4.min.css') }}" rel="stylesheet">
 <style>
     /* Match dashboardv2 customize_request_info styling */
     .details { padding: 10px 0; }
@@ -146,6 +147,22 @@
     }
     .additional-files-list li i.file-icon { color: #662c87; font-size: 16px; }
     .additional-files-list li .remove-file { margin-left: auto; color: #e74c3c; cursor: pointer; font-size: 16px; }
+
+    /* Video upload drop zone */
+    .video-drop-zone {
+        border: 2px dashed #c9b3d9;
+        border-radius: 12px;
+        padding: 30px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #fdfaff;
+    }
+    .video-drop-zone:hover, .video-drop-zone.dragover {
+        border-color: #662c87;
+        background: #f9f3fc;
+    }
+    .video-drop-zone p { color: #888; font-size: 14px; margin: 0; }
 </style>
 @endpush
 
@@ -342,6 +359,28 @@
                             <i class="fas fa-plus"></i> Add File
                         </button>
                     </div>
+                    <div class="col-sm-12 form-group">
+                        <label class="f-15">Upload Video <small class="text-muted">(up to 1GB — MP4, MOV, WebM)</small></label>
+                        <div id="videoDropZone" class="video-drop-zone">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                            <p class="mb-1">Drag & drop video here or click to browse</p>
+                            <input type="file" id="videoFileInput" accept="video/mp4,video/quicktime,video/webm" class="d-none">
+                        </div>
+                        <div id="videoProgressWrap" style="display:none;" class="mt-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small id="videoFileName" class="text-muted"></small>
+                                <small id="videoPercent" class="font-weight-bold">0%</small>
+                            </div>
+                            <div class="progress" style="height:8px;border-radius:4px;">
+                                <div id="videoProgressBar" class="progress-bar bg-primary" role="progressbar" style="width:0%"></div>
+                            </div>
+                            <small id="videoStatus" class="text-muted mt-1 d-block"></small>
+                        </div>
+                        <div id="videoComplete" style="display:none;" class="mt-2 alert alert-success py-2 px-3 mb-0">
+                            <i class="fas fa-check-circle mr-1"></i> <span id="videoCompleteName"></span> uploaded successfully
+                            <span class="float-right text-danger" style="cursor:pointer;" onclick="removeVideo()"><i class="fas fa-times"></i></span>
+                        </div>
+                    </div>
                     <div class="col-sm-12 form-group" id="additionalFeaturesGroup">
                         <label class="f-15">Additional Features <span class="text-danger">*</span></label>
                         <div class="radio-row">
@@ -365,28 +404,28 @@
                 </p>
 
                 <div class="form-group">
-                    <label class="f-15">What domain name would you like to be displayed in your website? <span class="text-danger">*</span></label>
+                    <label class="f-15">What domain name would you like to be displayed in your website?</label>
                     <small class="d-block text-muted pl-2 pb-1">(You can promote multiple websites in your platform.)</small>
-                    <textarea name="question_1" class="input_box" rows="3" required>{{ old('question_1') }}</textarea>
+                    <textarea name="question_1" class="input_box" rows="3">{{ old('question_1') }}</textarea>
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">What are your gifts, talents, products and/or services and what are you passionate about? <span class="text-danger">*</span></label>
-                    <textarea name="question_2" class="input_box" rows="3" required>{{ old('question_2') }}</textarea>
+                    <label class="f-15">What are your gifts, talents, products and/or services and what are you passionate about?</label>
+                    <textarea name="question_2" class="input_box" rows="3">{{ old('question_2') }}</textarea>
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">If you never got paid for it, what could you do for the rest of your life that brings you happiness? <span class="text-danger">*</span></label>
-                    <textarea name="question_3" class="input_box" rows="3" required>{{ old('question_3') }}</textarea>
+                    <label class="f-15">If you never got paid for it, what could you do for the rest of your life that brings you happiness?</label>
+                    <textarea name="question_3" class="input_box" rows="3">{{ old('question_3') }}</textarea>
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">List 5 things you love to do in order of importance. <span class="text-danger">*</span></label>
-                    <textarea name="question_4" class="input_box" rows="3" required>{{ old('question_4') }}</textarea>
+                    <label class="f-15">List 5 things you love to do in order of importance.</label>
+                    <textarea name="question_4" class="input_box" rows="3">{{ old('question_4') }}</textarea>
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">How many followers do you have on other platforms <span class="text-danger">*</span></label>
+                    <label class="f-15">How many followers do you have on other platforms</label>
                     <div class="radio-row">
                         <label class="radio-pill"><input type="radio" name="question_5" value="0-500" {{ old('question_5') == '0-500' ? 'checked' : '' }}> 0-500</label>
                         <label class="radio-pill"><input type="radio" name="question_5" value="500-5000" {{ old('question_5') == '500-5000' ? 'checked' : '' }}> 500-5000</label>
@@ -396,7 +435,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">Do you have a thumbnail image for your content management or master courses? <span class="text-danger">*</span></label>
+                    <label class="f-15">Do you have a thumbnail image for your content management or master courses?</label>
                     <small class="d-block text-muted pl-2 pb-1">(This image is displayed on the main page of your websites.)</small>
                     <div class="radio-row">
                         <label class="radio-pill"><input type="radio" name="question_11" value="1"> Yes</label>
@@ -405,7 +444,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">Can you provide us with your website content for your landing page? <span class="text-danger">*</span></label>
+                    <label class="f-15">Can you provide us with your website content for your landing page?</label>
                     <div class="radio-row">
                         <label class="radio-pill"><input type="radio" name="question_12" value="1"> Yes</label>
                         <label class="radio-pill"><input type="radio" name="question_12" value="0"> No</label>
@@ -413,7 +452,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">Can you provide us with your campaign content for your lead capture page? <span class="text-danger">*</span></label>
+                    <label class="f-15">Can you provide us with your campaign content for your lead capture page?</label>
                     <div class="radio-row">
                         <label class="radio-pill"><input type="radio" name="question_13" value="1"> Yes</label>
                         <label class="radio-pill"><input type="radio" name="question_13" value="0"> No</label>
@@ -421,7 +460,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">Do you have product images for your e-commerce store? (Your online mall) <span class="text-danger">*</span></label>
+                    <label class="f-15">Do you have product images for your e-commerce store? (Your online mall)</label>
                     <div class="radio-row">
                         <label class="radio-pill"><input type="radio" name="question_14" value="1"> Yes</label>
                         <label class="radio-pill"><input type="radio" name="question_14" value="0"> No</label>
@@ -429,7 +468,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">Do you have a banner image for your e-commerce store? (Your online mall) <span class="text-danger">*</span></label>
+                    <label class="f-15">Do you have a banner image for your e-commerce store? (Your online mall)</label>
                     <div class="radio-row">
                         <label class="radio-pill"><input type="radio" name="question_15" value="1"> Yes</label>
                         <label class="radio-pill"><input type="radio" name="question_15" value="0"> No</label>
@@ -437,7 +476,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">Do you have any videos for your landing page, e-commerce store or master courses? <span class="text-danger">*</span></label>
+                    <label class="f-15">Do you have any videos for your landing page, e-commerce store or master courses?</label>
                     <div class="radio-row">
                         <label class="radio-pill"><input type="radio" name="question_16" value="1"> Yes</label>
                         <label class="radio-pill"><input type="radio" name="question_16" value="0"> No</label>
@@ -445,9 +484,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">What would you like to do in your VIP to share your gift, talent, products and/or services with your VIP followers? <span class="text-danger">*</span></label>
+                    <label class="f-15">What would you like to do in your VIP to share your gift, talent, products and/or services with your VIP followers?</label>
                     <small class="d-block text-muted pl-2 pb-1">(Ex: Teach/train, worship, etc)</small>
-                    <textarea name="question_17" class="input_box" rows="3" required>{{ old('question_17') }}</textarea>
+                    <textarea name="question_17" class="input_box" rows="3">{{ old('question_17') }}</textarea>
                 </div>
 
                 <div class="form-group">
@@ -466,8 +505,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="f-15">Relevant data <span class="text-danger">*</span></label>
-                    <textarea name="requirement_4" class="input_box" rows="3" required>{{ old('requirement_4') }}</textarea>
+                    <label class="f-15">Relevant data</label>
+                    <textarea name="requirement_4" id="requirement4Editor" class="input_box" rows="3">{{ old('requirement_4') }}</textarea>
                 </div>
                 </div>
                 {{-- End Phase 2 --}}
@@ -633,5 +672,105 @@ function addFileInput() {
     row.find('.remove-file-row').on('click', function() { row.remove(); });
     $('#additionalFilesContainer').append(row);
 }
+
+
+</script>
+<script src="{{ asset('common/vendor/summernote/summernote-bs4.min.js') }}"></script>
+<script>
+$('#requirement4Editor').summernote({
+    height: 150,
+    toolbar: [
+        ['style', ['bold', 'italic', 'underline']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['insert', ['link']],
+        ['view', ['codeview']]
+    ],
+    disableDragAndDrop: true
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
+<script>
+// ── Chunked Video Upload with Resumable.js ──
+var videoUploadBusy = false;
+
+var r = new Resumable({
+    target: '{{ route("user.chunk.upload") }}',
+    chunkSize: 2 * 1024 * 1024, // 2MB chunks
+    simultaneousUploads: 3,
+    testChunks: true,
+    fileType: ['mp4', 'mov', 'webm'],
+    maxFileSize: 1 * 1024 * 1024 * 1024, // 1GB
+    fileTypeErrorCallback: function() { alert('Only MP4, MOV and WebM video files are allowed.'); },
+    maxFileSizeErrorCallback: function() { alert('Video file must be under 1GB.'); }
+});
+
+if (r.support) {
+    var $zone = $('#videoDropZone');
+    r.assignBrowse(document.getElementById('videoFileInput'));
+    r.assignDrop($zone[0]);
+
+    $zone.on('click', function() { $('#videoFileInput').click(); });
+    $zone.on('dragover', function() { $(this).addClass('dragover'); });
+    $zone.on('dragleave drop', function() { $(this).removeClass('dragover'); });
+
+    r.on('fileAdded', function(file) {
+        if (videoUploadBusy) {
+            alert('Please wait for the current video to finish uploading.');
+            r.removeFile(file);
+            return;
+        }
+        videoUploadBusy = true;
+        $('#videoDropZone').hide();
+        $('#videoComplete').hide();
+        $('#videoProgressWrap').show();
+        $('#videoFileName').text(file.fileName);
+        $('#videoPercent').text('0%');
+        $('#videoProgressBar').css('width', '0%');
+        $('#videoStatus').text('Uploading...');
+        r.upload();
+    });
+
+    r.on('fileProgress', function(file) {
+        var pct = Math.floor(file.progress() * 100);
+        $('#videoPercent').text(pct + '%');
+        $('#videoProgressBar').css('width', pct + '%');
+        if (pct >= 100) {
+            $('#videoStatus').text('Merging & uploading to CDN...');
+        }
+    });
+
+    r.on('fileSuccess', function(file, response) {
+        videoUploadBusy = false;
+        var data = JSON.parse(response);
+        $('#videoProgressWrap').hide();
+        $('#videoComplete').show();
+        $('#videoCompleteName').text(file.fileName);
+        r.removeFile(file);
+    });
+
+    r.on('fileError', function(file, response) {
+        videoUploadBusy = false;
+        var msg = 'Upload failed.';
+        try { msg = JSON.parse(response).error || msg; } catch(e) {}
+        alert(msg);
+        $('#videoProgressWrap').hide();
+        $('#videoDropZone').show();
+        r.removeFile(file);
+    });
+}
+
+function removeVideo() {
+    $('#videoComplete').hide();
+    $('#videoDropZone').show();
+}
+
+// Block form submit while video is uploading
+$('#request-form').on('submit', function(e) {
+    if (videoUploadBusy) {
+        e.preventDefault();
+        alert('Please wait for the video upload to complete before submitting.');
+        return false;
+    }
+});
 </script>
 @endpush

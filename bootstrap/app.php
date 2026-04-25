@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             '/auth/sso',
             '/api/chat/*',
+            '/request/chunk-upload',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

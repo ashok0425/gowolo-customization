@@ -30,7 +30,7 @@
         <h4 class="card-title">Edit Your Request</h4>
     </div>
     <div class="card-body">
-        <form method="POST" action="{{ route('user.request.update', $customizationRequest) }}">
+        <form method="POST" action="{{ route('user.request.update', $customizationRequest) }}" enctype="multipart/form-data" id="edit-form">
             @csrf @method('PUT')
 
             <h6 class="mb-3 mt-2 font-weight-bold">Personal Information</h6>
@@ -204,7 +204,66 @@
 
             <div class="form-group">
                 <label>Relevant data</label>
-                <textarea name="requirement_4" class="form-control" rows="3">{{ old('requirement_4', $answers['requirement_4'] ?? '') }}</textarea>
+                <textarea name="requirement_4" id="requirement4Editor" class="form-control" rows="3">{{ old('requirement_4', $answers['requirement_4'] ?? '') }}</textarea>
+            </div>
+
+            <h6 class="mb-3 mt-4 font-weight-bold">Files</h6>
+
+            {{-- Existing files --}}
+            @if($customizationRequest->files->count())
+            <div class="mb-3">
+                <label class="d-block mb-2">Current Files</label>
+                @foreach($customizationRequest->files as $file)
+                <div class="d-flex align-items-center justify-content-between p-2 mb-1 border rounded" id="file-row-{{ $file->id }}">
+                    <div>
+                        <i class="fas {{ in_array($file->extension, ['mp4','mov','webm']) ? 'fa-video' : (in_array($file->extension, ['jpg','jpeg','png','gif','webp']) ? 'fa-image' : ($file->extension === 'pdf' ? 'fa-file-pdf' : 'fa-file-alt')) }} mr-2 text-primary"></i>
+                        <span>{{ $file->original_name }}</span>
+                        <small class="text-muted ml-2">({{ number_format(($file->size_bytes ?: 0) / 1024, 1) }} KB)</small>
+                        <span class="badge badge-light ml-1">{{ $file->file_category }}</span>
+                    </div>
+                    <label class="text-danger mb-0" style="cursor:pointer;">
+                        <input type="checkbox" name="delete_files[]" value="{{ $file->id }}" class="mr-1"> Remove
+                    </label>
+                </div>
+                @endforeach
+            </div>
+            @endif
+
+            {{-- Add new files --}}
+            <div class="form-group">
+                <label>Add Files</label>
+                <div id="additionalFilesContainer">
+                    <div class="additional-file-row mb-2">
+                        <input type="file" name="attachments[]" class="form-control additional-file-input" accept="image/*,.pdf,.doc,.docx">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="addEditFileInput()">
+                    <i class="fas fa-plus mr-1"></i> Add File
+                </button>
+            </div>
+
+            {{-- Video upload --}}
+            <div class="form-group">
+                <label>Upload Video <small class="text-muted">(up to 1GB — MP4, MOV, WebM)</small></label>
+                <div id="videoDropZone" class="video-drop-zone">
+                    <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                    <p class="mb-1">Drag & drop video here or click to browse</p>
+                    <input type="file" id="videoFileInput" accept="video/mp4,video/quicktime,video/webm" class="d-none">
+                </div>
+                <div id="videoProgressWrap" style="display:none;" class="mt-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small id="videoFileName" class="text-muted"></small>
+                        <small id="videoPercent" class="font-weight-bold">0%</small>
+                    </div>
+                    <div class="progress" style="height:8px;border-radius:4px;">
+                        <div id="videoProgressBar" class="progress-bar bg-primary" role="progressbar" style="width:0%"></div>
+                    </div>
+                    <small id="videoStatus" class="text-muted mt-1 d-block"></small>
+                </div>
+                <div id="videoComplete" style="display:none;" class="mt-2 alert alert-success py-2 px-3 mb-0">
+                    <i class="fas fa-check-circle mr-1"></i> <span id="videoCompleteName"></span> uploaded successfully
+                    <span class="float-right text-danger" style="cursor:pointer;" onclick="removeVideo()"><i class="fas fa-times"></i></span>
+                </div>
             </div>
 
             <div class="d-flex justify-content-between mt-3">
@@ -214,4 +273,123 @@
         </form>
     </div>
 </div>
+
+@push('css')
+<link href="{{ asset('common/vendor/summernote/summernote-bs4.min.css') }}" rel="stylesheet">
+<style>
+    .video-drop-zone {
+        border: 2px dashed #c9b3d9;
+        border-radius: 12px;
+        padding: 30px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #fdfaff;
+    }
+    .video-drop-zone:hover, .video-drop-zone.dragover {
+        border-color: #662c87;
+        background: #f9f3fc;
+    }
+    .video-drop-zone p { color: #888; font-size: 14px; margin: 0; }
+</style>
+@endpush
+
+@push('js')
+<script src="{{ asset('common/vendor/summernote/summernote-bs4.min.js') }}"></script>
+<script>
+$('#requirement4Editor').summernote({
+    height: 150,
+    toolbar: [
+        ['style', ['bold', 'italic', 'underline']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['insert', ['link']],
+        ['view', ['codeview']]
+    ],
+    disableDragAndDrop: true
+});
+
+function addEditFileInput() {
+    var row = $('<div class="additional-file-row mb-2 d-flex align-items-center">' +
+        '<input type="file" name="attachments[]" class="form-control additional-file-input" accept="image/*,.pdf,.doc,.docx">' +
+        '<span class="text-danger ml-2" style="cursor:pointer;font-size:18px;" title="Remove" onclick="$(this).parent().remove()">&times;</span>' +
+        '</div>');
+    $('#additionalFilesContainer').append(row);
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>
+<script>
+var videoUploadBusy = false;
+var r = new Resumable({
+    target: '{{ route("user.chunk.upload") }}',
+    chunkSize: 2 * 1024 * 1024,
+    simultaneousUploads: 3,
+    testChunks: true,
+    fileType: ['mp4', 'mov', 'webm'],
+    maxFileSize: 1 * 1024 * 1024 * 1024,
+    fileTypeErrorCallback: function() { alert('Only MP4, MOV and WebM video files are allowed.'); },
+    maxFileSizeErrorCallback: function() { alert('Video file must be under 1GB.'); }
+});
+
+if (r.support) {
+    var $zone = $('#videoDropZone');
+    r.assignBrowse(document.getElementById('videoFileInput'));
+    r.assignDrop($zone[0]);
+
+    $zone.on('click', function() { $('#videoFileInput').click(); });
+    $zone.on('dragover', function() { $(this).addClass('dragover'); });
+    $zone.on('dragleave drop', function() { $(this).removeClass('dragover'); });
+
+    r.on('fileAdded', function(file) {
+        if (videoUploadBusy) { alert('Please wait for the current video to finish uploading.'); r.removeFile(file); return; }
+        videoUploadBusy = true;
+        $('#videoDropZone').hide();
+        $('#videoComplete').hide();
+        $('#videoProgressWrap').show();
+        $('#videoFileName').text(file.fileName);
+        $('#videoPercent').text('0%');
+        $('#videoProgressBar').css('width', '0%');
+        $('#videoStatus').text('Uploading...');
+        r.upload();
+    });
+
+    r.on('fileProgress', function(file) {
+        var pct = Math.floor(file.progress() * 100);
+        $('#videoPercent').text(pct + '%');
+        $('#videoProgressBar').css('width', pct + '%');
+        if (pct >= 100) $('#videoStatus').text('Merging & uploading to CDN...');
+    });
+
+    r.on('fileSuccess', function(file) {
+        videoUploadBusy = false;
+        $('#videoProgressWrap').hide();
+        $('#videoComplete').show();
+        $('#videoCompleteName').text(file.fileName);
+        r.removeFile(file);
+    });
+
+    r.on('fileError', function(file, response) {
+        videoUploadBusy = false;
+        var msg = 'Upload failed.';
+        try { msg = JSON.parse(response).error || msg; } catch(e) {}
+        alert(msg);
+        $('#videoProgressWrap').hide();
+        $('#videoDropZone').show();
+        r.removeFile(file);
+    });
+}
+
+function removeVideo() {
+    $('#videoComplete').hide();
+    $('#videoDropZone').show();
+}
+
+$('#edit-form').on('submit', function(e) {
+    if (videoUploadBusy) {
+        e.preventDefault();
+        alert('Please wait for the video upload to complete before saving.');
+        return false;
+    }
+});
+</script>
+@endpush
 @endsection

@@ -86,28 +86,28 @@ class RequestController extends Controller
             $rules['request_description'] = 'required|string|min:10';
         }
 
-        // Questionary is only required when "Additional Features = Yes" (customization only)
+        // Questionary fields are all optional
         if ($isCustomization && $request->input('addition_feature') == '1') {
             $rules = array_merge($rules, [
-                'question_1'    => 'required|string',
-                'question_2'    => 'required|string',
-                'question_3'    => 'required|string',
-                'question_4'    => 'required|string',
-                'question_5'    => 'required|string',
-                'question_11'   => 'required|in:0,1',
-                'question_12'   => 'required|in:0,1',
-                'question_13'   => 'required|in:0,1',
-                'question_14'   => 'required|in:0,1',
-                'question_15'   => 'required|in:0,1',
-                'question_16'   => 'required|in:0,1',
-                'question_17'   => 'required|string',
-                'requirement_4' => 'required|string',
+                'question_1'    => 'nullable|string',
+                'question_2'    => 'nullable|string',
+                'question_3'    => 'nullable|string',
+                'question_4'    => 'nullable|string',
+                'question_5'    => 'nullable|string',
+                'question_11'   => 'nullable|in:0,1',
+                'question_12'   => 'nullable|in:0,1',
+                'question_13'   => 'nullable|in:0,1',
+                'question_14'   => 'nullable|in:0,1',
+                'question_15'   => 'nullable|in:0,1',
+                'question_16'   => 'nullable|in:0,1',
+                'question_17'   => 'nullable|string',
+                'requirement_4' => 'nullable|string',
             ]);
         }
 
         $request->validate($rules);
 
-        // Validate file sizes: 10MB for videos, 5MB for others
+        // Validate file sizes: 5MB for non-video files (videos go through chunk upload)
         $allFiles = [];
         foreach (['logo', 'icon', 'app_background', 'cust_doc_file'] as $field) {
             if ($request->hasFile($field)) {
@@ -121,10 +121,11 @@ class RequestController extends Controller
         }
         foreach ($allFiles as $f) {
             $isVideo = str_starts_with($f->getMimeType(), 'video/');
-            $maxBytes = $isVideo ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
-            $maxLabel = $isVideo ? '10MB' : '5MB';
-            if ($f->getSize() > $maxBytes) {
-                return back()->withErrors(['attachments' => $f->getClientOriginalName() . " exceeds the {$maxLabel} limit."])->withInput();
+            if ($isVideo) {
+                continue; // videos are uploaded via chunk upload, skip here
+            }
+            if ($f->getSize() > 5 * 1024 * 1024) {
+                return back()->withErrors(['attachments' => $f->getClientOriginalName() . " exceeds the 5MB limit."])->withInput();
             }
         }
 
@@ -183,6 +184,23 @@ class RequestController extends Controller
             }
         }
 
+        // Link chunked video upload (uploaded before form submit, stored in session)
+        if ($videoData = session('pending_video_upload')) {
+            CustomizationFile::create([
+                'request_id'       => $custRequest->id,
+                'uploaded_by_type' => 'user',
+                'uploaded_by_id'   => $ssoUser['user_id'],
+                'file_category'    => 'video',
+                'original_name'    => $videoData['original_name'],
+                'extension'        => $videoData['extension'],
+                'size_bytes'       => $videoData['size_bytes'],
+                'bunny_path'       => $videoData['bunny_path'],
+                'bunny_synced'     => $videoData['bunny_synced'],
+                'local_path'       => $videoData['local_path'],
+            ]);
+            session()->forget('pending_video_upload');
+        }
+
         activity('customization')
             ->performedOn($custRequest)
             ->withProperties(['user_id' => $ssoUser['user_id']])
@@ -229,7 +247,7 @@ class RequestController extends Controller
             'This request can no longer be edited because it is already in progress.'
         );
 
-        $customizationRequest->load('answers');
+        $customizationRequest->load(['answers', 'files']);
         return view('user.request.edit', compact('customizationRequest'));
     }
 
@@ -305,6 +323,54 @@ class RequestController extends Controller
                 ['request_id' => $customizationRequest->id, 'question_key' => $key],
                 ['question_text' => $text, 'answer' => $newValue]
             );
+        }
+
+        // Delete files marked for removal
+        if ($request->filled('delete_files')) {
+            $deleteIds = array_filter((array) $request->input('delete_files'));
+            if (!empty($deleteIds)) {
+                $filesToDelete = CustomizationFile::where('request_id', $customizationRequest->id)
+                    ->whereIn('id', $deleteIds)->get();
+                foreach ($filesToDelete as $fileRecord) {
+                    if ($fileRecord->bunny_path && $this->bunny->isConfigured()) {
+                        try { $this->bunny->delete($fileRecord->bunny_path); } catch (\Exception) {}
+                    }
+                    $fileRecord->delete();
+                }
+                $changed['files_deleted'] = count($filesToDelete) . ' file(s) removed';
+            }
+        }
+
+        // Handle new file uploads
+        $ssoUser = session('auth_user');
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $f) {
+                $isVideo = str_starts_with($f->getMimeType(), 'video/');
+                if (!$isVideo && $f->getSize() > 5 * 1024 * 1024) {
+                    return back()->withErrors(['attachments' => $f->getClientOriginalName() . ' exceeds the 5MB limit.'])->withInput();
+                }
+                if ($isVideo) continue; // videos go through chunk upload
+                $this->storeFile($f, $customizationRequest->id, 'attachment', $ssoUser['user_id']);
+            }
+            $changed['files_added'] = 'New files uploaded';
+        }
+
+        // Link chunked video upload from session
+        if ($videoData = session('pending_video_upload')) {
+            CustomizationFile::create([
+                'request_id'       => $customizationRequest->id,
+                'uploaded_by_type' => 'user',
+                'uploaded_by_id'   => $ssoUser['user_id'],
+                'file_category'    => 'video',
+                'original_name'    => $videoData['original_name'],
+                'extension'        => $videoData['extension'],
+                'size_bytes'       => $videoData['size_bytes'],
+                'bunny_path'       => $videoData['bunny_path'],
+                'bunny_synced'     => $videoData['bunny_synced'],
+                'local_path'       => $videoData['local_path'],
+            ]);
+            session()->forget('pending_video_upload');
+            $changed['video_added'] = 'Video uploaded';
         }
 
         if (!empty($changed)) {

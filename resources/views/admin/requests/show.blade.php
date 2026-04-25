@@ -86,7 +86,13 @@
                 <dl class="row">
                     @foreach($customizationRequest->answers as $answer)
                     <dt class="col-sm-5 text-muted">{{ $answer->question_text }}</dt>
-                    <dd class="col-sm-7">{{ $answer->answer }}</dd>
+                    <dd class="col-sm-7">
+                        @if($answer->question_key === 'requirement_4')
+                            {!! strip_tags($answer->answer, '<p><br><ul><ol><li><strong><em><a><u>') !!}
+                        @else
+                            {{ $answer->answer }}
+                        @endif
+                    </dd>
                     @endforeach
                 </dl>
             </div>

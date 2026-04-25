@@ -97,6 +97,55 @@ class BunnyStorageService
     }
 
     /**
+     * Upload a large file from local path using streamed PUT (suitable for 1GB+).
+     * Returns the bunny_path (e.g. /requests/attachments/1735000000_file.mp4)
+     */
+    public function uploadFromPath(string $localPath, string $folder): string
+    {
+        $extension = pathinfo($localPath, PATHINFO_EXTENSION);
+        $filename  = time() . '_' . uniqid() . '.' . $extension;
+        $bunnyPath = '/' . ltrim($folder, '/') . '/' . $filename;
+
+        $url = "https://{$this->hostname}/{$this->storageZone}{$bunnyPath}";
+
+        $stream = fopen($localPath, 'rb');
+        if ($stream === false) {
+            throw new \Exception("Could not open file for upload: {$localPath}");
+        }
+
+        $size    = filesize($localPath);
+        $headers = [
+            'AccessKey'      => $this->apiKey,
+            'Content-Type'   => 'application/octet-stream',
+        ];
+        if ($size) {
+            $headers['Content-Length'] = (string) $size;
+        }
+
+        $client   = new \GuzzleHttp\Client(['timeout' => 3600]);
+        $response = $client->request('PUT', $url, [
+            'headers'     => $headers,
+            'body'        => $stream,
+            'http_errors' => false,
+        ]);
+
+        $status = $response->getStatusCode();
+        if ($status < 200 || $status >= 300) {
+            throw new \Exception('Bunny upload failed (' . $status . '): ' . (string) $response->getBody());
+        }
+
+        return $bunnyPath;
+    }
+
+    /**
+     * Public CDN URL for a bunny path.
+     */
+    public function cdnUrl(string $bunnyPath): string
+    {
+        return 'https://' . $this->cdnHostname . $bunnyPath;
+    }
+
+    /**
      * Delete a file from Bunny storage.
      */
     public function delete(string $bunnyPath): bool
