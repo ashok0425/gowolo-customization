@@ -378,10 +378,69 @@ class RequestController extends Controller
 
         abort_unless($file->request_id === $customizationRequest->id, 404);
 
+        return $this->streamFileDownload($file);
+    }
+
+    public function downloadAllFiles(string $cuid)
+    {
+        $customizationRequest = CustomizationRequest::where('cuid', $cuid)->firstOrFail();
+
+        $user   = Auth::guard('portal')->user();
+        $seeAll = $user->hasPermissionTo('view_all_requests');
+
+        if (!$seeAll) {
+            abort_unless(
+                $customizationRequest->assigned_tech_id1 == $user->id ||
+                $customizationRequest->assigned_tech_id2 == $user->id,
+                403
+            );
+        }
+
+        $files = $customizationRequest->files;
+        abort_if($files->isEmpty(), 404);
+
+        $zipName = $customizationRequest->ref_number . '_files.zip';
+        $tempPath = tempnam(sys_get_temp_dir(), 'zip_');
+
+        $zip = new \ZipArchive();
+        $zip->open($tempPath, \ZipArchive::OVERWRITE);
+
+        $bunny = app(BunnyStorageService::class);
+
+        foreach ($files as $file) {
+            $content = null;
+            if ($file->bunny_path && $bunny->isConfigured()) {
+                $content = @file_get_contents($bunny->signedUrl($file->bunny_path));
+            } elseif ($file->local_path) {
+                $localPath = public_path(ltrim($file->local_path, '/'));
+                if (file_exists($localPath)) {
+                    $content = file_get_contents($localPath);
+                }
+            }
+            if ($content) {
+                $zip->addFromString($file->original_name, $content);
+            }
+        }
+
+        $zip->close();
+
+        return response()->download($tempPath, $zipName)->deleteFileAfterSend(true);
+    }
+
+    private function streamFileDownload(CustomizationFile $file)
+    {
         $bunny = app(BunnyStorageService::class);
 
         if ($file->bunny_path && $bunny->isConfigured()) {
-            return redirect($bunny->signedUrl($file->bunny_path));
+            $url = $bunny->signedUrl($file->bunny_path);
+            $content = @file_get_contents($url);
+            abort_unless($content !== false, 404);
+
+            return response($content, 200, [
+                'Content-Type'        => 'application/octet-stream',
+                'Content-Disposition' => 'attachment; filename="' . $file->original_name . '"',
+                'Content-Length'      => strlen($content),
+            ]);
         }
 
         if ($file->local_path) {

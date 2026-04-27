@@ -96,7 +96,14 @@
         {{-- Files --}}
         @if($customizationRequest->files->count())
         <div class="card">
-            <div class="card-header"><h4 class="card-title">Uploaded Files</h4></div>
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <h4 class="card-title">Uploaded Files <span class="badge badge-info ml-2">{{ $customizationRequest->files->count() }} {{ Str::plural('file', $customizationRequest->files->count()) }}</span></h4>
+                    <a href="{{ route('user.request.file.download-all', $customizationRequest->cuid) }}" class="btn btn-sm btn-primary ml-auto">
+                        <i class="fas fa-download mr-1"></i> Download All
+                    </a>
+                </div>
+            </div>
             <div class="card-body">
                 @php $bunny = app(\App\Services\BunnyStorageService::class); @endphp
                 <div class="table-responsive">

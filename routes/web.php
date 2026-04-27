@@ -47,6 +47,7 @@ Route::middleware('portal.auth')->prefix('admin')->name('admin.')->group(functio
     Route::post('/requests/{cuid}/status',  [Admin\RequestController::class, 'updateStatus'])->name('requests.status');
     Route::get('/requests/{cuid}/logs',     [Admin\RequestController::class, 'logs'])->name('requests.logs');
     Route::get('/requests/{cuid}/file/{file}', [Admin\RequestController::class, 'downloadFile'])->name('requests.file.download');
+    Route::get('/requests/{cuid}/files/download-all', [Admin\RequestController::class, 'downloadAllFiles'])->name('requests.file.download-all');
 
     // Chat
     Route::get('/requests/{cuid}/chat',   [Admin\ChatController::class, 'show'])->name('requests.chat');
@@ -81,6 +82,7 @@ Route::middleware('sso.auth')->prefix('request')->name('user.')->group(function 
     Route::post('/bug-report',      [User\BugReportController::class, 'store'])->name('bug-report.store');
 
     Route::get('/{cuid}/file/{file}', [User\RequestController::class, 'downloadFile'])->name('request.file.download');
+    Route::get('/{cuid}/files/download-all', [User\RequestController::class, 'downloadAllFiles'])->name('request.file.download-all');
     Route::get('/{cuid}/edit',    [User\RequestController::class, 'edit'])->name('request.edit');
     Route::put('/{cuid}',         [User\RequestController::class, 'update'])->name('request.update');
     Route::post('/{cuid}/approve',[User\RequestController::class, 'approve'])->name('request.approve');
