@@ -381,7 +381,15 @@ class RequestController extends Controller
         $bunny = app(BunnyStorageService::class);
 
         if ($file->bunny_path && $bunny->isConfigured()) {
-            return redirect($bunny->signedUrl($file->bunny_path));
+            $url = $bunny->signedUrl($file->bunny_path);
+            $response = \Illuminate\Support\Facades\Http::withOptions(['timeout' => 120])->get($url);
+            abort_unless($response->successful(), 404);
+
+            return response($response->body(), 200, [
+                'Content-Type'        => 'application/octet-stream',
+                'Content-Disposition' => 'attachment; filename="' . $file->original_name . '"',
+                'Content-Length'      => strlen($response->body()),
+            ]);
         }
 
         if ($file->local_path) {
@@ -426,9 +434,9 @@ class RequestController extends Controller
         foreach ($files as $file) {
             if ($file->bunny_path && $bunny->isConfigured()) {
                 $url = $bunny->signedUrl($file->bunny_path);
-                $content = @file_get_contents($url);
-                if ($content !== false) {
-                    $zip->addFromString($file->original_name, $content);
+                $response = \Illuminate\Support\Facades\Http::withOptions(['timeout' => 120])->get($url);
+                if ($response->successful()) {
+                    $zip->addFromString($file->original_name, $response->body());
                 }
             } elseif ($file->local_path) {
                 $localPath = public_path(ltrim($file->local_path, '/'));
