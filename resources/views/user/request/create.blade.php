@@ -28,7 +28,7 @@
         outline: none;
         box-shadow: 0 0 0 3px rgba(102, 44, 135, 0.1);
     }
-    .input_box[readonly] { background: #f5f5f5; color: #666; cursor: not-allowed; }
+    .input_box[] { background: #f5f5f5; color: #666; cursor: not-allowed; }
 
     /* "I'm requesting for" checkboxes */
     .wdth95 { font-weight: 600; padding: 0 8px 8px; color: #333; }
@@ -201,17 +201,17 @@
                 <div class="row">
                     <div class="col-md-6 form-group">
                         <label class="f-15">First Name <span class="text-danger">*</span></label>
-                        <input type="text" name="first_name" class="input_box" value="{{ old('first_name', explode(' ', session('auth_user.name', ''))[0] ?? '') }}" required readonly>
+                        <input type="text" name="first_name" class="input_box" value="{{ old('first_name', explode(' ', session('auth_user.name', ''))[0] ?? '') }}" required >
                         <div class="field-error">First Name is required</div>
                     </div>
                     <div class="col-md-6 form-group">
                         <label class="f-15">Last Name <span class="text-danger">*</span></label>
-                        <input type="text" name="last_name" class="input_box" value="{{ old('last_name', implode(' ', array_slice(explode(' ', session('auth_user.name', '')), 1))) }}" required readonly>
+                        <input type="text" name="last_name" class="input_box" value="{{ old('last_name', implode(' ', array_slice(explode(' ', session('auth_user.name', '')), 1))) }}" required >
                         <div class="field-error">Last Name is required</div>
                     </div>
                     <div class="col-md-6 form-group">
                         <label class="f-15">Phone Number <span class="text-danger">*</span></label>
-                        <input type="text" name="phone" class="input_box" value="{{ old('phone', session('auth_user.phone')) }}" required readonly>
+                        <input type="text" name="phone" class="input_box" value="{{ old('phone', session('auth_user.phone')) }}" required >
                         <div class="field-error">Phone is required</div>
                     </div>
                     <div class="col-md-6 form-group">
@@ -220,7 +220,7 @@
                     </div>
                     <div class="col-md-6 form-group">
                         <label class="f-15">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" name="email" class="input_box" value="{{ old('email', session('auth_user.email')) }}" required readonly>
+                        <input type="email" name="email" class="input_box" value="{{ old('email', session('auth_user.email')) }}" required >
                         <div class="field-error">Email is required</div>
                     </div>
                     <div class="col-md-6 form-group">
