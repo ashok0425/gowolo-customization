@@ -395,7 +395,19 @@ class RequestController extends Controller
 
         abort_unless($file->request_id === $customizationRequest->id, 404);
 
-        return $this->streamFileDownload($file);
+        $bunny = app(BunnyStorageService::class);
+
+        if ($file->bunny_path && $bunny->isConfigured()) {
+            return redirect($bunny->signedUrl($file->bunny_path));
+        }
+
+        if ($file->local_path) {
+            $path = public_path(ltrim($file->local_path, '/'));
+            abort_unless(file_exists($path), 404);
+            return response()->download($path, $file->original_name);
+        }
+
+        abort(404);
     }
 
     public function downloadAllFiles(string $cuid)
@@ -407,56 +419,35 @@ class RequestController extends Controller
         abort_if($files->isEmpty(), 404);
 
         $zipName = $customizationRequest->ref_number . '_files.zip';
-        $tempPath = tempnam(sys_get_temp_dir(), 'zip_');
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+        $tempPath = $tempDir . '/' . uniqid('zip_') . '.zip';
 
         $zip = new \ZipArchive();
-        $zip->open($tempPath, \ZipArchive::OVERWRITE);
+        abort_unless($zip->open($tempPath, \ZipArchive::CREATE) === true, 500);
 
         $bunny = app(BunnyStorageService::class);
 
         foreach ($files as $file) {
-            $content = null;
             if ($file->bunny_path && $bunny->isConfigured()) {
-                $content = @file_get_contents($bunny->signedUrl($file->bunny_path));
+                $url = $bunny->signedUrl($file->bunny_path);
+                $content = @file_get_contents($url);
+                if ($content !== false) {
+                    $zip->addFromString($file->original_name, $content);
+                }
             } elseif ($file->local_path) {
                 $localPath = public_path(ltrim($file->local_path, '/'));
                 if (file_exists($localPath)) {
-                    $content = file_get_contents($localPath);
+                    $zip->addFile($localPath, $file->original_name);
                 }
-            }
-            if ($content) {
-                $zip->addFromString($file->original_name, $content);
             }
         }
 
         $zip->close();
 
         return response()->download($tempPath, $zipName)->deleteFileAfterSend(true);
-    }
-
-    private function streamFileDownload(CustomizationFile $file)
-    {
-        $bunny = app(BunnyStorageService::class);
-
-        if ($file->bunny_path && $bunny->isConfigured()) {
-            $url = $bunny->signedUrl($file->bunny_path);
-            $content = @file_get_contents($url);
-            abort_unless($content !== false, 404);
-
-            return response($content, 200, [
-                'Content-Type'        => 'application/octet-stream',
-                'Content-Disposition' => 'attachment; filename="' . $file->original_name . '"',
-                'Content-Length'      => strlen($content),
-            ]);
-        }
-
-        if ($file->local_path) {
-            $path = public_path(ltrim($file->local_path, '/'));
-            abort_unless(file_exists($path), 404);
-            return response()->download($path, $file->original_name);
-        }
-
-        abort(404);
     }
 
     private function authorizeSsoUser(CustomizationRequest $request): void
